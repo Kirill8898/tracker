@@ -187,10 +187,10 @@ html, body {
 .geo-journal-body { font-size:15px; color:rgba(255,255,255,0.75); line-height:1.8; }
 .geo-journal-body .geo-p { margin-bottom:16px; }
 .geo-journal-body .geo-section-head {
-  font-size:11px; font-weight:600; color:#4ecdc4;
-  letter-spacing:1.2px; text-transform:uppercase;
+  font-size:13px; font-weight:600; color:#4ecdc4;
+  letter-spacing:0.3px;
   margin:24px 0 10px; display:block;
-  padding-bottom:6px; border-bottom:0.5px solid rgba(78,205,196,0.2);
+  padding-bottom:8px; border-bottom:0.5px solid rgba(78,205,196,0.2);
 }
 .geo-journal-body .geo-bullet {
   display:flex; gap:12px; margin-bottom:12px; align-items:flex-start;
@@ -363,9 +363,9 @@ html, body {
       <div class="c-label label">Intelligence</div>
       <span class="label" id="geo-date" style="font-size:12px;color:rgba(255,255,255,0.35);padding-top:2px;"></span>
     </div>
-    <!-- headline — same size as c-val but lighter weight -->
+    <!-- headline -->
     <div class="c-mid" style="padding:10px 0 4px;position:relative;">
-      <div id="geo-headline" style="font-size:20px;font-weight:300;color:#fff;line-height:1.3;letter-spacing:-0.01em;"></div>
+      <div id="geo-headline" style="font-size:16px;font-weight:400;color:#fff;line-height:1.45;letter-spacing:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;"></div>
     </div>
     <!-- preview -->
     <div id="geo-preview" style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;position:relative;margin-bottom:12px;"></div>
@@ -1061,54 +1061,101 @@ function openGeoJournal() {
   document.getElementById('geo-journal-date').textContent = dateStr;
   document.getElementById('geo-journal-headline').textContent = _geoData.headline || '';
 
-  // Render body with proper structure
+  // Markdown cleaner — strips formatting, removes source URLs
+  function cleanMd(t) {
+    return t
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*\n]+)\*/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\s*\(Source:[^)]*\)/gi, '')
+      .replace(/^#+\s*/, '')
+      .replace(/^[*\-•]\s*/, '')
+      .trim();
+  }
+
   const raw = (_geoData.body || _geoData.preview || '').trim();
   const bodyEl = document.getElementById('geo-journal-body');
   bodyEl.innerHTML = '';
 
-  // Split into blocks on blank lines first, then process each block
-  const blocks = raw.split(/\n{2,}/);
-  for (const block of blocks) {
-    const lines = block.split('\n').map(l => l.trim()).filter(l => l);
-    if (!lines.length) continue;
+  const lines = raw.split('\n');
+  let currentSubHead = '';
 
-    // Detect block type from first line
-    const first = lines[0];
-    const isSectionHead =
-      (first.length < 60 && /^[A-Z0-9][A-Z\s\d\:\-]{3,}$/.test(first)) ||  // ALL CAPS
-      /^[🎯📍🔍⚡💡🌍🔹▶]/.test(first) ||                                    // emoji lead
-      (first.endsWith(':') && first.length < 50 && lines.length === 1);       // label:
+  for (let i = 0; i < lines.length; i++) {
+    const raw_l = lines[i];
+    const l = raw_l.trim();
 
-    if (isSectionHead) {
+    // Skip separators and empty lines
+    if (!l || /^[═─—=\-]{4,}$/.test(l)) continue;
+
+    // Section header: ## emoji Title
+    if (/^##\s+/.test(l)) {
+      const title = l.replace(/^##\s+/, '').replace(/[🌐🎯📌✍️📊🔗🔬]\s*/g, '').trim();
       const s = document.createElement('span');
       s.className = 'geo-section-head';
-      s.textContent = first.replace(/^[🎯📍🔍⚡💡🌍🔹▶\s]+/, '').replace(/:$/, '').trim();
+      s.textContent = title;
       bodyEl.appendChild(s);
-      // remaining lines after header become a paragraph
-      const rest = lines.slice(1).join(' ').trim();
-      if (rest) {
-        const p = document.createElement('div');
-        p.className = 'geo-p';
-        p.textContent = rest;
-        bodyEl.appendChild(p);
+      currentSubHead = '';
+      continue;
+    }
+
+    // Sub-header: **Topic:** (bold label ending in colon, on its own line)
+    if (/^\*\*[^*]+:\*\*\s*$/.test(l)) {
+      currentSubHead = l.replace(/\*\*/g, '').replace(/:$/, '').trim();
+      const sh = document.createElement('div');
+      sh.style.cssText = 'font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);margin:16px 0 6px;';
+      sh.textContent = currentSubHead;
+      bodyEl.appendChild(sh);
+      continue;
+    }
+
+    // Bullet: *   **Title:** content  OR  *   content  OR  - content
+    if (/^[*\-]\s+/.test(l)) {
+      const cleaned = cleanMd(l);
+      if (!cleaned) continue;
+
+      // Check for inline bold title: **Title:** rest
+      const titleMatch = cleaned.match(/^([^:]{3,40}):\s+(.+)/);
+      const d = document.createElement('div');
+      d.className = 'geo-bullet';
+      const dot = document.createElement('div');
+      dot.className = 'geo-bullet-dot';
+      d.appendChild(dot);
+
+      if (titleMatch) {
+        const span = document.createElement('span');
+        const b = document.createElement('b');
+        b.style.cssText = 'font-weight:600;color:rgba(255,255,255,0.9);';
+        b.textContent = titleMatch[1] + ': ';
+        span.appendChild(b);
+        span.appendChild(document.createTextNode(titleMatch[2]));
+        d.appendChild(span);
+      } else {
+        d.appendChild(document.createTextNode(cleaned));
       }
-    } else if (lines.every(l => /^[\-\*•]/.test(l) || /^\d+[\.\)]/.test(l))) {
-      // Pure bullet block
-      for (const line of lines) {
-        const d = document.createElement('div');
-        d.className = 'geo-bullet';
-        const dot = document.createElement('div');
-        dot.className = 'geo-bullet-dot';
-        const txt = document.createElement('span');
-        txt.textContent = line.replace(/^[\-\*•]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
-        d.appendChild(dot); d.appendChild(txt);
-        bodyEl.appendChild(d);
-      }
-    } else {
-      // Regular paragraph — join all lines
+      bodyEl.appendChild(d);
+      continue;
+    }
+
+    // Numbered list
+    if (/^\d+\.\s+/.test(l)) {
+      const cleaned = cleanMd(l.replace(/^\d+\.\s+/, ''));
+      if (!cleaned) continue;
+      const d = document.createElement('div');
+      d.className = 'geo-bullet';
+      const dot = document.createElement('div');
+      dot.className = 'geo-bullet-dot';
+      d.appendChild(dot);
+      d.appendChild(document.createTextNode(cleaned));
+      bodyEl.appendChild(d);
+      continue;
+    }
+
+    // Regular paragraph
+    const cleaned = cleanMd(l);
+    if (cleaned.length > 4) {
       const p = document.createElement('div');
       p.className = 'geo-p';
-      p.textContent = lines.join(' ');
+      p.textContent = cleaned;
       bodyEl.appendChild(p);
     }
   }
