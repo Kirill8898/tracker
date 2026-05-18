@@ -33,7 +33,7 @@ html, body {
   padding: 56px 24px 32px;
   padding-top: max(56px, calc(env(safe-area-inset-top) + 14px));
   display:flex; flex-direction:column; gap:18px; min-height:400px;
-  position: relative; overflow: hidden;
+  position: relative;
 }
 .hero-bar { display:flex; align-items:center; justify-content:space-between; }
 .icon-btn {
@@ -930,7 +930,7 @@ async function callGemini(key, prompt, temp = 1.1) {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           contents:[{ parts:[{ text: prompt }]}],
-          generationConfig:{ temperature: temp, maxOutputTokens: 120 },
+          generationConfig:{ temperature: temp, maxOutputTokens: 220 },
         }),
       });
       const json = await res.json();
@@ -1007,14 +1007,13 @@ Write exactly 2 sentences. Lowercase. No period at the end. No quotes. Output on
   const result = await callGemini(key, prompt, 0.9);
   if (!result) return;
   const raw = result.text
-    .replace(/\n.*/s, '')
+    .split('\n').filter(l => l.trim()).join(' ')
     .replace(/^["'"""']+|["'"""']+$/g, '')
-    .replace(/\.$/, '')
+    .replace(/\.+$/, '')
     .toLowerCase()
     .trim();
-  // reject fragments: must have a verb (space + word ending in common verb suffixes or common verbs)
   const looksComplete = raw.split(' ').length >= 8;
-  if (raw && raw.length > 50 && raw.length < 220 && looksComplete) {
+  if (raw && raw.length > 50 && raw.length < 380 && looksComplete) {
     insEl.textContent = raw;
   }
 }
