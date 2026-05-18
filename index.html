@@ -1028,33 +1028,48 @@ async function fetchGeoSignal() {
   const scriptUrl = localStorage.getItem('script_url');
   const card = document.getElementById('card-geo');
   if (!scriptUrl) { if(card) card.style.display='none'; return; }
+  // Show card in loading state right away
+  if (card) card.style.display = 'flex';
+  const hlEl = document.getElementById('geo-headline');
+  if (hlEl) { hlEl.style.opacity = '0.35'; hlEl.textContent = 'loading intel…'; }
   try {
     const res  = await fetch(`${scriptUrl}?action=getTodaySignal&date=${TODAY}`);
     const text = await res.text();
     let json;
-    try { json = JSON.parse(text); } catch(e) { console.error('Geo parse error:', text.substring(0,200)); return; }
-    console.log('Geo response:', JSON.stringify(json).substring(0,300));
+    try { json = JSON.parse(text); } catch(e) {
+      console.error('Geo parse error:', text.substring(0,200));
+      if (hlEl) { hlEl.style.opacity = '1'; hlEl.textContent = 'could not parse response'; }
+      return;
+    }
     if (json.ok && json.data) {
       if (json.data.docUrl) geoDocUrl = json.data.docUrl;
-      if (json.data.found && card) card.style.display = 'flex';
       renderGeoCard(json.data);
     } else {
       console.warn('Geo not ok:', json);
+      if (hlEl) { hlEl.style.opacity = '1'; hlEl.textContent = json.error || 'no data'; }
     }
-  } catch(e) { console.error('Geo fetch error:', e.message); }
+  } catch(e) {
+    console.error('Geo fetch error:', e.message);
+    if (hlEl) { hlEl.style.opacity = '1'; hlEl.textContent = 'connection error'; }
+  }
 }
 
 let _geoData = null;
 
 function renderGeoCard(data) {
   _geoData = data;
-  if (!data.found) return;
-  const dateStr = data.date ? new Date(data.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}) : '';
   const hlEl = document.getElementById('geo-headline');
   const pvEl = document.getElementById('geo-preview');
   const dtEl = document.getElementById('geo-date');
-  if (hlEl) hlEl.textContent = data.headline || '';
-  if (pvEl) pvEl.textContent = data.preview || data.body || '';
+  if (!data.found) {
+    if (hlEl) { hlEl.style.opacity = '0.4'; hlEl.textContent = 'no intel for today yet'; }
+    if (pvEl) pvEl.textContent = '';
+    if (dtEl) dtEl.textContent = '';
+    return;
+  }
+  const dateStr = data.date ? new Date(data.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}) : '';
+  if (hlEl) { hlEl.style.opacity = '1'; hlEl.textContent = data.headline || ''; }
+  if (pvEl) pvEl.textContent = data.preview || '';
   if (dtEl) dtEl.textContent = dateStr;
 }
 
@@ -1222,7 +1237,28 @@ async function testConnections() {
       lines.push(`❌ Apps Script — network error: ${e.message}`);
     }
 
-    // 1b — test POST
+    // 1b — test geo signal
+    try {
+      const gRes  = await fetch(`${url}?action=getTodaySignal&date=${TODAY}`);
+      const gText = await gRes.text();
+      try {
+        const gJson = JSON.parse(gText);
+        if (gJson.ok && gJson.data) {
+          const d = gJson.data;
+          lines.push(d.found
+            ? `✅ Geo Intel — found (${(d.headline||'').substring(0,60)}…)`
+            : `⚠️ Geo Intel — no entry for ${TODAY} in doc`);
+        } else {
+          lines.push(`❌ Geo Intel — ${gJson.error||'bad response'}`);
+        }
+      } catch(e) {
+        lines.push(`❌ Geo Intel — bad JSON (${gText.slice(0,60)})`);
+      }
+    } catch(e) {
+      lines.push(`❌ Geo Intel — ${e.message}`);
+    }
+
+    // 1d — test POST
     try {
       await fetch(url, {
         method: 'POST',

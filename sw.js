@@ -1,7 +1,7 @@
 // Service Worker — Kirill's Tracker
 // Caches app shell for offline use
 
-const CACHE = 'tracker-v1';
+const CACHE = 'tracker-v2';
 const SHELL = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
