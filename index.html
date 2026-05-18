@@ -148,6 +148,47 @@ html, body {
   cursor:pointer; margin-top:4px; font-family:-apple-system,system-ui;
 }
 
+/* ── geo journal modal ── */
+#geo-journal {
+  position:fixed; inset:0; z-index:300;
+  background:rgba(0,0,0,0.75);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  display:none; align-items:flex-end;
+}
+#geo-journal.open { display:flex; }
+.geo-sheet {
+  background:#0d1520;
+  border-radius:28px 28px 0 0;
+  width:100%;
+  max-height:88vh;
+  overflow-y:auto;
+  padding:28px 24px;
+  padding-bottom:max(36px, calc(env(safe-area-inset-bottom) + 20px));
+  animation:sheetUp 300ms cubic-bezier(0.16,1,0.3,1);
+  border-top:0.5px solid rgba(78,205,196,0.2);
+}
+.geo-tag {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 10px; border-radius:20px;
+  background:rgba(78,205,196,0.1); border:0.5px solid rgba(78,205,196,0.25);
+  font-size:11px; color:rgba(78,205,196,0.8); letter-spacing:0.5px; text-transform:uppercase;
+  margin-bottom:16px;
+}
+.geo-journal-headline {
+  font-size:22px; font-weight:400; color:#fff; line-height:1.3; margin-bottom:20px;
+}
+.geo-journal-body {
+  font-size:15px; color:rgba(255,255,255,0.72); line-height:1.75;
+  white-space:pre-wrap;
+}
+.geo-close {
+  float:right; width:32px; height:32px; border-radius:16px;
+  background:rgba(255,255,255,0.08); border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  color:rgba(255,255,255,0.6); flex-shrink:0;
+  margin-left:12px;
+}
+
 /* ── toast ── */
 #toast {
   position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
@@ -295,17 +336,48 @@ html, body {
     </div>
   </div>
 
-  <!-- GEO INTEL (hidden until URL set + entry found) -->
-  <div class="card card-wide" id="card-geo" onclick="openGeoDoc()"
-    style="display:none;min-height:auto;padding:18px 20px;
-      background:radial-gradient(ellipse at 22% 22%, #1a6666 0%, #0a3030 35%, #041010 100%);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <span class="c-label label" style="font-size:12px;color:#4ecdc4;">GEO Intelligence</span>
-      <span style="font-size:11px;color:rgba(78,205,196,0.55);">Read full &#8594;</span>
+  <!-- GEO INTEL -->
+  <div class="card card-wide" id="card-geo" onclick="openGeoJournal()"
+    style="display:none;min-height:auto;padding:22px 24px;
+      background:radial-gradient(ellipse at 15% 20%, #1a4a5c 0%, #0a1f2e 50%, #060e18 100%);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:6px;height:6px;border-radius:3px;background:#4ecdc4;box-shadow:0 0 8px #4ecdc4;"></div>
+        <span class="label" style="font-size:13px;color:rgba(78,205,196,0.8);letter-spacing:0.5px;text-transform:uppercase;">Geo Intelligence</span>
+      </div>
+      <span class="label" style="font-size:11px;color:rgba(255,255,255,0.25);" id="geo-date"></span>
     </div>
-    <div id="geo-content" style="font-size:13px;color:rgba(255,255,255,0.62);line-height:1.55;"></div>
+    <div id="geo-headline" style="font-size:17px;font-weight:400;color:#fff;line-height:1.3;margin-bottom:8px;"></div>
+    <div id="geo-preview" style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"></div>
+    <div style="margin-top:14px;display:flex;align-items:center;gap:5px;">
+      <span class="label" style="font-size:11px;color:rgba(78,205,196,0.5);">read full brief</span>
+      <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5h6M5 2l3 3-3 3" stroke="rgba(78,205,196,0.5)" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
   </div>
 
+</div>
+
+<!-- ══════════ GEO JOURNAL ══════════ -->
+<div id="geo-journal" onclick="if(event.target===this)closeGeoJournal()">
+  <div class="geo-sheet">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <div class="geo-tag">
+        <div style="width:5px;height:5px;border-radius:50%;background:#4ecdc4;box-shadow:0 0 6px #4ecdc4;"></div>
+        Geo Intelligence
+      </div>
+      <button class="geo-close" onclick="closeGeoJournal()">
+        <svg width="12" height="12" viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="label" id="geo-journal-date" style="font-size:12px;color:rgba(255,255,255,0.3);margin-bottom:16px;"></div>
+    <div class="geo-journal-headline" id="geo-journal-headline"></div>
+    <div class="geo-journal-body" id="geo-journal-body"></div>
+    <div style="margin-top:24px;padding-top:20px;border-top:0.5px solid rgba(255,255,255,0.08);text-align:center;">
+      <button onclick="openGeoDoc()" style="background:rgba(78,205,196,0.12);border:0.5px solid rgba(78,205,196,0.3);color:rgba(78,205,196,0.9);padding:12px 28px;border-radius:20px;font-size:14px;cursor:pointer;font-family:-apple-system,system-ui;">
+        Open source document ↗
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════ SETTINGS ══════════ -->
@@ -895,14 +967,13 @@ USER DATA RIGHT NOW:
 YOUR TASK — ${topicAngle[topic]}
 
 STRICT FORMAT:
-- Must be a complete sentence (or two) — never a fragment, label, or title
+- Must be a complete sentence or two — never a fragment, label, or title
 - 15–40 words total
 - lowercase only, no period at the end
-- no em-dashes, no bullet points, no colons, no quotes
 - output ONLY the coaching text, nothing else
 
-BAD examples (too short, vague, or label-like): "remember the dopamine" / "addressing task initiation" / "consistency matters"
-GOOD examples: "set a 5-minute timer and open just one task — your brain will often continue once the initiation barrier is crossed" / "if a craving hits, delay it by 10 minutes and drink water — most cravings peak and fade within that window"`;
+BAD (too short or vague): "remember the dopamine" / "addressing task initiation" / "consistency matters"
+GOOD: "set a 5-minute timer and open just one task — your brain will often continue once the initiation barrier is crossed" / "if a craving hits, delay it by 10 minutes and drink water — most cravings peak and fade within that window"`;
 
   const result = await callGemini(key, prompt, 1.25);
   if (!result) return;
@@ -910,12 +981,10 @@ GOOD examples: "set a 5-minute timer and open just one task — your brain will 
     .replace(/\n.*/s, '')
     .replace(/^["'"""']+|["'"""']+$/g, '')
     .replace(/\.$/, '')
-    .replace(/—/g, '–')
     .toLowerCase()
     .trim();
   if (raw && raw.length > 30 && raw.length < 220) {
-    insEl.style.opacity = '0';
-    setTimeout(() => { insEl.textContent = raw; insEl.style.opacity = ''; }, 300);
+    insEl.textContent = raw;
   }
 }
 
@@ -939,12 +1008,35 @@ async function fetchGeoSignal() {
   } catch(e) {}
 }
 
+let _geoData = null;
+
 function renderGeoCard(data) {
-  const el = document.getElementById('geo-content'); if(!el) return;
-  if (!data.found) { el.innerHTML='<span style="opacity:0.4;font-style:italic;">No signal yet — intel arrives at 09:00.</span>'; return; }
-  const hl = data.headline ? `<div style="font-weight:500;margin-bottom:4px;">${esc(data.headline)}</div>` : '';
-  const pv = data.preview  ? `<div style="opacity:0.55;font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${esc(data.preview)}</div>` : '';
-  el.innerHTML = hl + pv;
+  _geoData = data;
+  if (!data.found) return;
+  const dateStr = data.date ? new Date(data.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}) : '';
+  const hlEl = document.getElementById('geo-headline');
+  const pvEl = document.getElementById('geo-preview');
+  const dtEl = document.getElementById('geo-date');
+  if (hlEl) hlEl.textContent = data.headline || '';
+  if (pvEl) pvEl.textContent = data.preview || data.body || '';
+  if (dtEl) dtEl.textContent = dateStr;
+}
+
+function openGeoJournal() {
+  if (!_geoData || !_geoData.found) return;
+  const dateStr = _geoData.date ? new Date(_geoData.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '';
+  document.getElementById('geo-journal-date').textContent = dateStr;
+  document.getElementById('geo-journal-headline').textContent = _geoData.headline || '';
+  document.getElementById('geo-journal-body').textContent = _geoData.body || _geoData.preview || '';
+  const modal = document.getElementById('geo-journal');
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('open'));
+}
+
+function closeGeoJournal() {
+  const modal = document.getElementById('geo-journal');
+  modal.classList.remove('open');
+  setTimeout(() => { modal.style.display = 'none'; }, 300);
 }
 
 function openGeoDoc() { window.open(geoDocUrl, '_blank'); }
