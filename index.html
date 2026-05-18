@@ -967,39 +967,45 @@ async function fetchInsight() {
   const doneGoals   = (S.goals||[]).filter(g => g.done).length;
   const totalGoals  = (S.goals||[]).length;
 
-  // — rotate topic on every load for variety —
-  const TOPICS = ['adhd', 'smoking', 'consistency', 'nonneg'];
-  const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
+  // Pick angle based on what's most pressing right now
+  let angle;
+  if (cigCount >= 3) {
+    angle = `they've hit their cigarette limit (${cigCount} today). address craving management or harm reduction for the rest of the day`;
+  } else if (IS_WORK_DAY && workHours < 1 && h >= 11) {
+    angle = `it's ${timeCtx} on a work day and they haven't started working yet. address task initiation friction and fear of starting — this is classic ADHD avoidance`;
+  } else if (doneGoals === 0 && totalGoals > 0 && h >= 12) {
+    angle = `it's ${timeCtx} and none of their ${totalGoals} goals are done yet (${pendingGoals}). address fear of failure, perfectionism paralysis, or procrastination`;
+  } else if (!gymToday && h >= 16) {
+    angle = `gym hasn't been done and it's getting late. address protecting non-negotiables and the ADHD tendency to defer until tomorrow`;
+  } else {
+    // Random angle from remaining useful topics
+    const angles = [
+      `address the ADHD pattern of time blindness — they may not realise how the day is progressing`,
+      `address fear of failure or perfectionism that stops ADHD people from starting or finishing goals`,
+      `address dopamine and motivation — why ADHD brains struggle with low-reward tasks and what actually works`,
+      `address the gap between intention and action that ADHD creates, and give a specific bridge technique`,
+      `address consistency — why showing up imperfectly beats waiting for the right moment`,
+    ];
+    angle = angles[Math.floor(Math.random() * angles.length)];
+  }
 
-  const topicAngle = {
-    adhd:        `Write 1-2 sentences of specific ADHD coaching. Name a real mechanism (e.g. "your prefrontal cortex underproduces dopamine until a task is started — use the 2-minute rule to trick it into engaging") or a named technique with why it works for ADHD brains specifically. Must feel like advice from someone who deeply gets ADHD, not a generic tip.`,
-    smoking:     `Write 1-2 sentences of specific smoking advice. Today: ${cigCount} cigarettes, limit 3, ${lastCigStr}. Reference craving science, urge surfing, delay tactics, or substitution — and tie it to the user's actual situation right now. Make it practical and non-judgmental.`,
-    consistency: `Write 1-2 sentences about consistency and showing up. Use a specific concept: identity-based habits, the "never miss twice" rule, minimum viable reps, habit stacking, or why ADHD brains need external structure more than willpower. Connect to something in their data today.`,
-    nonneg:      `Write 1-2 sentences about protecting non-negotiables (work, gym, staying under 3 cigarettes, Portuguese study). Use a specific tactic: implementation intention ("when X then Y"), commitment device, reducing friction, or if-then planning. Be concrete about what to do right now.`,
-  };
+  const prompt = `You are coaching someone with ADHD who is checking their daily habit tracker. They struggle with task initiation, fear of failure, perfectionism, and procrastination. Write them ONE coaching message for this exact moment.
 
-  const prompt = `You are a world-class ADHD coach and behavioural scientist. You deeply understand ADHD, habit formation, and behaviour change. You speak directly to the user — sharp, warm, and specific. Never vague. Never a label. Always a complete thought with real content.
+Their data right now:
+- ${timeCtx} (${h}:00), ${IS_WORK_DAY ? 'work day' : 'rest day'}
+- score: ${score}%
+- work: ${workHours}h logged (${workCtx})
+- cigarettes: ${cigCount}/3 today (${lastCigStr})
+- gym: ${gymToday ? 'done' : 'not done'}
+- goals: ${doneGoals}/${totalGoals} done, pending: ${pendingGoals || 'none'}
 
-USER DATA RIGHT NOW:
-- Time: ${timeCtx} (${h}:00), ${IS_WORK_DAY ? 'work day (Tue–Sat)' : 'rest day (Sun/Mon)'}
-- Score today: ${score}%
-- Work: ${workHours}h logged, ${workCtx}
-- Cigarettes: ${cigCount} today (limit 3), ${lastCigStr}
-- Gym: ${gymToday ? 'done ✓' : 'not yet'}
-- Goals: ${doneGoals}/${totalGoals} done — pending: ${pendingGoals}
+Your message should: ${angle}
 
-YOUR TASK — ${topicAngle[topic]}
+Name the specific ADHD mechanism at play. Give one action they can take in the next 5 minutes. Be direct and warm — like a coach who truly gets ADHD, not a productivity blog.
 
-STRICT FORMAT:
-- Must be a complete sentence or two — never a fragment, label, or title
-- 15–40 words total
-- lowercase only, no period at the end
-- output ONLY the coaching text, nothing else
+Write exactly 2 sentences. Lowercase. No period at the end. No quotes. Output only the coaching text.`;
 
-BAD (too short or vague): "remember the dopamine" / "addressing task initiation" / "consistency matters"
-GOOD: "set a 5-minute timer and open just one task — your brain will often continue once the initiation barrier is crossed" / "if a craving hits, delay it by 10 minutes and drink water — most cravings peak and fade within that window"`;
-
-  const result = await callGemini(key, prompt, 1.25);
+  const result = await callGemini(key, prompt, 0.9);
   if (!result) return;
   const raw = result.text
     .replace(/\n.*/s, '')
