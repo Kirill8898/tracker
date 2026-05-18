@@ -1007,7 +1007,9 @@ GOOD: "set a 5-minute timer and open just one task — your brain will often con
     .replace(/\.$/, '')
     .toLowerCase()
     .trim();
-  if (raw && raw.length > 30 && raw.length < 220) {
+  // reject fragments: must have a verb (space + word ending in common verb suffixes or common verbs)
+  const looksComplete = raw.split(' ').length >= 8;
+  if (raw && raw.length > 50 && raw.length < 220 && looksComplete) {
     insEl.textContent = raw;
   }
 }
