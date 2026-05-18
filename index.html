@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+html, body {
+  min-height:100%; background:#0a0a0a; color:#fff;
+  font-family:-apple-system, BlinkMacSystemFont, 'Helvetica Neue', system-ui, sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+::-webkit-scrollbar { display:none; }
+* { scrollbar-width:none; }
+
+/* ── typography classes from design ── */
+.label { font-family:-apple-system,'Helvetica Neue',system-ui,sans-serif; font-weight:400; letter-spacing:0; }
+.num   { font-family:-apple-system,'Helvetica Neue',system-ui,sans-serif; font-weight:300; letter-spacing:-0.04em; }
+.dotted { font-family:'Doto','Courier New',monospace; font-weight:300; letter-spacing:0.02em; font-feature-settings:"tnum"; }
+
+/* ── hero ── */
+#hero {
+  padding: 56px 24px 32px;
+  padding-top: max(56px, calc(env(safe-area-inset-top) + 14px));
+  display:flex; flex-direction:column; gap:18px; min-height:400px;
+  position: relative; overflow: hidden;
+}
+.hero-bar { display:flex; align-items:center; justify-content:space-between; }
+.icon-btn {
+  width:32px; height:32px; border-radius:16px;
+  background:rgba(255,255,255,0.06); border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  color:rgba(255,255,255,0.75); flex-shrink:0;
+}
+.hero-center {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:10px;
+}
+.hero-insight { font-size:15px; color:rgba(255,255,255,0.68); letter-spacing:0.1px; text-align:center; max-width:320px; line-height:1.65; transition: opacity 300ms ease; }
+.hero-insight.loading { opacity: 0.35; }
+@keyframes blink { 0%,100%{opacity:0.2} 50%{opacity:0.7} }
+.insight-dots span { animation: blink 1.4s ease-in-out infinite; }
+.insight-dots span:nth-child(2) { animation-delay: 0.2s; }
+.insight-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* day chips */
+.day-chips { display:flex; gap:5px; justify-content:center; }
+.chip {
+  width:26px; height:26px; border-radius:13px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7);
+  border:0.5px solid rgba(255,255,255,0.15);
+}
+.chip.today { background:#fff; color:#000; border-color:#fff; }
+.chip.gym   { background:rgba(231,255,58,0.85); color:#000; border-color:transparent; }
+
+/* ── grid ── */
+#grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:5px; padding:0 6px;
+  padding-bottom:calc(30px + env(safe-area-inset-bottom));
+}
+
+/* ── cards ── */
+.card {
+  border-radius:44px; padding:20px;
+  display:flex; flex-direction:column;
+  position:relative; overflow:hidden;
+  cursor:pointer; transition:transform 180ms ease;
+}
+.card:active { transform:scale(0.965); }
+.card-wide { grid-column:span 2; }
+
+.c-label { font-size:16px; font-weight:400; color:rgba(255,255,255,0.92); letter-spacing:0.1px; line-height:1; flex-shrink:0; }
+.c-mid   { flex:1; display:flex; align-items:center; padding:10px 0 6px; }
+.c-bot   { display:flex; align-items:baseline; justify-content:space-between; }
+.c-val   { font-family:-apple-system,'Helvetica Neue',monospace; font-weight:300; font-size:48px; line-height:0.92; color:#fff; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; }
+.c-unit  { font-size:13px; color:rgba(255,255,255,0.65); margin-left:4px; }
+.c-aux   { font-size:11px; color:rgba(255,255,255,0.5); }
+
+/* ── scale slider ── */
+.sl-wrap { position:relative; height:22px; width:100%; }
+.sl-bar  { position:absolute; left:0; right:0; top:50%; height:6px; transform:translateY(-50%); border-radius:4px; opacity:0.92; }
+.sl-needle {
+  position:absolute; top:-2px; bottom:-2px; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center;
+  pointer-events:none; transition:left 0.6s ease;
+}
+.sl-tri  { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:8px solid #e7ff3a; filter:drop-shadow(0 0 5px #e7ff3a); }
+.sl-line { width:2.5px; flex:1; background:#e7ff3a; box-shadow:0 0 8px #e7ff3a,0 0 18px rgba(231,255,58,0.6); }
+
+/* ── dot progress ── */
+.dot-row { display:flex; align-items:center; }
+.dot { border-radius:50%; background:rgba(255,255,255,0.28); transition:all 0.25s ease; }
+.dot.on { background:#fff; box-shadow:0 0 8px rgba(255,255,255,0.7); }
+
+/* ── goal rows ── */
+.g-row { display:flex; align-items:center; gap:10px; cursor:pointer; padding:1px 0; }
+.g-check {
+  width:18px; height:18px; border-radius:9px; flex-shrink:0;
+  border:1.2px solid rgba(255,255,255,0.55);
+  display:flex; align-items:center; justify-content:center;
+  transition:all 150ms ease; background:transparent;
+}
+.g-check.on { background:#e7ff3a; border-color:#e7ff3a; }
+.g-text { flex:1; font-size:14px; color:rgba(255,255,255,0.95); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.2; }
+.g-text.done { color:rgba(255,255,255,0.42); text-decoration:line-through; text-decoration-color:rgba(255,255,255,0.35); }
+
+@keyframes sheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+@keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:0.45} }
+.live-dot { width:6px; height:6px; border-radius:3px; display:inline-block; animation:pulse 1s ease-in-out infinite; }
+
+/* ── settings ── */
+#settings {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,0.65); display:none; align-items:flex-end;
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+}
+#settings.open { display:flex; }
+.s-sheet {
+  background:#181818; border-radius:28px 28px 0 0; padding:24px 22px;
+  padding-bottom:max(28px, calc(env(safe-area-inset-bottom) + 14px)); width:100%;
+  animation:sheetUp 280ms cubic-bezier(0.16,1,0.3,1);
+}
+.s-sheet-title { font-size:17px; font-weight:600; margin-bottom:18px; }
+.s-lbl { font-size:11px; color:rgba(255,255,255,0.45); margin-bottom:5px; }
+.s-inp {
+  width:100%; background:rgba(255,255,255,0.06);
+  border:0.5px solid rgba(255,255,255,0.18); border-radius:10px;
+  color:#fff; font-size:14px; padding:11px 13px;
+  font-family:-apple-system,system-ui; outline:none; margin-bottom:10px;
+}
+.s-inp::placeholder { color:rgba(255,255,255,0.3); }
+.s-save {
+  width:100%; padding:14px; border-radius:13px; border:none;
+  background:#fff; color:#000; font-size:16px; font-weight:600;
+  cursor:pointer; margin-top:4px; font-family:-apple-system,system-ui;
+}
+
+/* ── toast ── */
+#toast {
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+  background:rgba(28,28,28,0.94); border:0.5px solid rgba(255,255,255,0.12);
+  border-radius:20px; padding:10px 20px;
+  font-size:13px; color:rgba(255,255,255,0.88);
+  z-index:500; pointer-events:none; opacity:0;
+  transition:opacity 0.28s ease; white-space:nowrap;
+}
+#toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ HERO ══════════════ -->
+<section id="hero">
+  <div class="hero-bar">
+    <div style="width:32px;"></div>
+    <!-- Day chips -->
+    <div class="day-chips" id="day-chips"></div>
+    <!-- Right: settings gear -->
+    <button class="icon-btn" onclick="openSettings()" aria-label="Settings">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="2.4" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.06 1.06M11.54 11.54l1.06 1.06M3.4 12.6l1.06-1.06M11.54 4.46l1.06-1.06"
+          stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="hero-center">
+    <!-- Dot-matrix score -->
+    <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:28px;">
+      <div id="score-dotnum"></div>
+      <div style="padding-bottom:2px;" id="score-pct-dotnum"></div>
+    </div>
+    <div class="hero-insight label" id="hero-insight">—</div>
+  </div>
+</section>
+
+<!-- ══════════════ GRID ══════════════ -->
+<div id="grid">
+
+  <!-- WORK (wide) -->
+  <div class="card card-wide" id="card-work" onclick="toggleWork()"
+    style="background:radial-gradient(ellipse at 20% 20%, #f5b89c 0%, #e58a8a 35%, #c46f8e 70%, #823e62 100%); min-height:178px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="c-label label" style="font-size:17px;color:rgba(255,255,255,0.95);">Work session</div>
+      <div class="label" style="font-size:12px;color:rgba(255,255,255,0.7);display:flex;align-items:center;gap:6px;">
+        <span id="work-live-dot" class="live-dot" style="display:none;background:#e7ff3a;box-shadow:0 0 8px #e7ff3a;"></span>
+        <span id="work-status-txt">tap to start · 8h target</span>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:auto;padding-top:12px;">
+      <div style="display:flex;align-items:baseline;gap:6px;">
+        <span class="num" id="work-val" style="font-size:54px;line-height:0.92;color:#fff;">0h 00:00</span>
+      </div>
+      <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
+        <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg);display:block;">
+          <circle cx="40" cy="40" r="34" stroke="rgba(255,255,255,0.14)" stroke-width="2.5" fill="none"/>
+          <circle id="gauge-ring" cx="40" cy="40" r="34" stroke="#e7ff3a" stroke-width="2.5" fill="none"
+            stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"
+            style="transition:stroke-dashoffset 0.6s ease; filter:drop-shadow(0 0 5px rgba(231,255,58,0.65));"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+          <span class="dotted" id="gauge-label" style="font-size:22px;color:#e7ff3a;text-shadow:0 0 8px rgba(231,255,58,0.7);">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CIGARETTES / WILLPOWER -->
+  <div class="card" id="card-cig" onclick="addCig()" style="min-height:168px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="c-label label">Cigarettes</div>
+      <span id="cig-undo" onclick="event.stopPropagation();removeCig()" class="label"
+        style="display:none;font-size:11px;color:rgba(255,255,255,0.55);padding:2px 8px;border-radius:9px;background:rgba(255,255,255,0.07);cursor:pointer;">undo</span>
+    </div>
+    <div class="c-mid">
+      <div class="sl-wrap" style="width:100%;">
+        <div class="sl-bar" style="background:linear-gradient(to right,rgba(255,235,200,0.6) 0%,#ffaa6a 50%,#ff3030 100%);"></div>
+        <div class="sl-needle" id="cig-needle" style="left:0%"><div class="sl-tri"></div><div class="sl-line"></div></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="num" id="cig-val" style="font-size:48px;line-height:0.92;color:#fff;">0</span>
+      <span class="label" style="font-size:14px;color:rgba(255,255,255,0.65);">/ 3</span>
+    </div>
+  </div>
+
+  <!-- GYM -->
+  <div class="card" id="card-gym" onclick="toggleGymToday()"
+    style="background:radial-gradient(ellipse 110% 50% at 50% 50%, #0a020a 0%, #1c0210 18%, #6e1654 45%, #c0228a 75%, #ff95d6 100%); min-height:168px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="c-label label">Gym</div>
+      <span id="gym-today-badge" class="label" style="display:none;font-size:11px;color:#e7ff3a;">✓ today</span>
+    </div>
+    <div class="c-mid" style="justify-content:center;">
+      <div class="dot-row" id="gym-dots" style="gap:13px;"></div>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="num" id="gym-val" style="font-size:48px;line-height:0.92;color:#fff;">0</span>
+      <span class="label" style="font-size:14px;color:rgba(255,255,255,0.65);">/ 5</span>
+    </div>
+  </div>
+
+  <!-- GOALS (wide) — tasks auto-populated, tapped inline -->
+  <div class="card card-wide" id="card-goals"
+    style="background:radial-gradient(ellipse 110% 60% at 50% 50%, #02040f 0%, #050a25 18%, #142e7a 45%, #2a55cc 75%, #6a92ff 100%); min-height:168px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;">
+      <div class="c-label label" style="font-size:17px;">Goals</div>
+      <div style="display:flex;align-items:baseline;gap:3px;">
+        <span class="num" id="goals-done-big" style="font-size:32px;line-height:1;color:#fff;">0</span>
+        <span class="label" id="goals-total-big" style="font-size:13px;color:rgba(255,255,255,0.4);">/ 0</span>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:11px;margin-top:10px;" id="goals-list"></div>
+  </div>
+
+  <!-- PORTUGUESE HOMEWORK -->
+  <div class="card" id="card-pt" onclick="togglePtToday()"
+    style="background:radial-gradient(ellipse 70% 52% at 108% 18%, #4466ff 0%, #2233ee 28%, #6633bb 48%, transparent 68%), radial-gradient(ellipse at 38% 72%, #e8654a 0%, #cc3f22 42%, #8a1a06 78%, #2a0502 100%); min-height:168px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="c-label label">Português</div>
+      <span id="pt-today-badge" class="label" style="display:none;font-size:11px;color:#e7ff3a;">✓ today</span>
+    </div>
+    <div class="c-mid" style="justify-content:center;align-items:center;">
+      <div id="pt-dots"></div>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:6px;">
+      <span class="num" id="pt-val" style="font-size:42px;line-height:0.92;color:#fff;">0</span>
+      <span class="label" id="pt-unit" style="font-size:13px;color:rgba(255,255,255,0.65);">/ 4</span>
+    </div>
+  </div>
+
+  <!-- STREAK (MinCo) -->
+  <div class="card" id="card-streak"
+    style="background:radial-gradient(circle at 18% 18%, rgba(140,100,230,0.55) 0%, rgba(80,50,170,0.3) 15%, transparent 40%), linear-gradient(135deg, #15093a 0%, #0a041c 60%, #04020e 100%); min-height:168px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="c-label label">Streak</div>
+      <span class="label" id="streak-days-lbl" style="font-size:11px;color:rgba(255,255,255,0.55);">0d</span>
+    </div>
+    <div style="flex:1;margin-top:8px;display:flex;align-items:flex-end;justify-content:center;">
+      <div id="streak-dots"></div>
+    </div>
+  </div>
+
+  <!-- GEO INTEL (hidden until URL set + entry found) -->
+  <div class="card card-wide" id="card-geo" onclick="openGeoDoc()"
+    style="display:none;min-height:auto;padding:18px 20px;
+      background:radial-gradient(ellipse at 22% 22%, #1a6666 0%, #0a3030 35%, #041010 100%);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span class="c-label label" style="font-size:12px;color:#4ecdc4;">GEO Intelligence</span>
+      <span style="font-size:11px;color:rgba(78,205,196,0.55);">Read full &#8594;</span>
+    </div>
+    <div id="geo-content" style="font-size:13px;color:rgba(255,255,255,0.62);line-height:1.55;"></div>
+  </div>
+
+</div>
+
+<!-- ══════════ SETTINGS ══════════ -->
+<div id="settings" onclick="if(event.target===this)closeSettings()">
+  <div class="s-sheet">
+    <div class="s-sheet-title">Settings</div>
+    <div class="s-lbl">Apps Script URL</div>
+    <input class="s-inp" id="url-inp" type="url" placeholder="https://script.google.com/macros/s/…">
+    <div class="s-lbl">Gemini API Key</div>
+    <input class="s-inp" id="key-inp" type="password" placeholder="AIza…">
+    <button class="s-save" onclick="saveSettings()">Save</button>
+    <button class="s-save" onclick="testConnections()" style="background:rgba(255,255,255,0.08);color:#fff;margin-top:8px;font-weight:400;">Test connections</button>
+    <div id="test-out" style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.7;min-height:0;"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════════
+//  DOT-MATRIX RENDERER (5×7 glyph grid)
+// ════════════════════════════════════════════
+const DOT_GLYPHS = {
+  '0':['01110','10001','10011','10101','11001','10001','01110'],
+  '1':['00100','01100','00100','00100','00100','00100','01110'],
+  '2':['01110','10001','00001','00010','00100','01000','11111'],
+  '3':['11110','00001','00001','01110','00001','00001','11110'],
+  '4':['00010','00110','01010','10010','11111','00010','00010'],
+  '5':['11111','10000','11110','00001','00001','10001','01110'],
+  '6':['00110','01000','10000','11110','10001','10001','01110'],
+  '7':['11111','00001','00010','00100','01000','01000','01000'],
+  '8':['01110','10001','10001','01110','10001','10001','01110'],
+  '9':['01110','10001','10001','01111','00001','00010','01100'],
+  '%':['11001','11010','00100','00100','00100','01011','10011'],
+  ' ':['00000','00000','00000','00000','00000','00000','00000'],
+};
+
+function dotNumSVG(text, size, gap, color, glow) {
+  const r    = size / 2;
+  const cell = size + gap;
+  const charW = 5 * cell;
+  const charH = 7 * cell;
+  const spc   = cell * 1.4;
+  let xCursor = 0;
+  const dots = [];
+  for (const ch of String(text)) {
+    const g = DOT_GLYPHS[ch] || DOT_GLYPHS[' '];
+    for (let row = 0; row < 7; row++) {
+      for (let col = 0; col < 5; col++) {
+        dots.push({ cx: xCursor + col*cell + r, cy: row*cell + r, on: g[row][col]==='1' });
+      }
+    }
+    xCursor += charW + spc;
+  }
+  const W = xCursor - spc;
+  const H = charH;
+  const f = glow ? `filter="drop-shadow(0 0 ${size*0.6}px ${color}66)"` : '';
+  const circles = dots.map(d =>
+    `<circle cx="${d.cx.toFixed(1)}" cy="${d.cy.toFixed(1)}" r="${(r*0.92).toFixed(2)}" fill="${color}" opacity="${d.on?1:0.08}"/>`
+  ).join('');
+  return `<svg width="${W.toFixed(1)}" height="${H.toFixed(1)}" viewBox="0 0 ${W.toFixed(1)} ${H.toFixed(1)}" style="display:inline-block;" ${f}>${circles}</svg>`;
+}
+
+// ════════════════════════════════════════════
+//  STREAK DOTS GRID
+// ════════════════════════════════════════════
+function streakDotsSVG(count, cols, rows, color, cell, gap) {
+  const dots = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r*cols + c;
+      const filled = i < count;
+      dots.push({
+        x: c*(cell+gap) + cell/2,
+        y: r*(cell+gap) + cell/2,
+        r: filled ? (cell/2) * (0.7 + 0.3*((c+r)%2)) : 1.2,
+        filled,
+      });
+    }
+  }
+  const W = cols*cell + (cols-1)*gap;
+  const H = rows*cell + (rows-1)*gap;
+  const circles = dots.map(d => {
+    const f = d.filled ? `style="filter:drop-shadow(0 0 4px ${color}aa)"` : '';
+    return `<circle cx="${d.x}" cy="${d.y}" r="${d.r}" fill="${d.filled?color:'rgba(255,255,255,0.18)'}" ${f}/>`;
+  }).join('');
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;">${circles}</svg>`;
+}
+
+// ════════════════════════════════════════════
+//  CONSTANTS
+// ════════════════════════════════════════════
+const STORAGE_KEY = 'tracker-v2';
+const CIRC35      = 2 * Math.PI * 34;   // circumference for r=34 gauge
+const DAYS_LBL    = ['M','T','W','T','F','S','S'];
+
+const _now  = new Date();
+const TODAY = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
+const DOW   = (_now.getDay() + 6) % 7;   // Mon=0 … Sun=6
+// Work week: Tue–Sat (DOW 1–5). Sun(6) and Mon(0) are rest days.
+const IS_WORK_DAY = DOW >= 1 && DOW <= 5;
+
+const WILL = [
+  { max:0,   label:'IRON MODE',  wisdom:'Zero. Willpower made visible.' },
+  { max:1,   label:'CONTROLLED', wisdom:'One. You are still in command.' },
+  { max:2,   label:'CONTROLLED', wisdom:'Two. This is your ceiling. Hold it.' },
+  { max:3,   label:'AT LIMIT',   wisdom:'Three. Your stated maximum. Stop here.' },
+  { max:999, label:'OVER LIMIT', wisdom:'Something shifted. What happened today?' },
+];
+
+const CIG_GRADS = [
+  'radial-gradient(ellipse 80% 60% at 50% 45%, #060c0a 0%, #0e1a16 25%, #243832 50%, #6a7060 75%, #c0a085 100%)',
+  'radial-gradient(ellipse 80% 60% at 50% 45%, #060c0a 0%, #0e1a16 25%, #243832 50%, #6a7060 75%, #c0a085 100%)',
+  'radial-gradient(ellipse 80% 60% at 50% 45%, #0c0a04 0%, #1a1408 25%, #3a2e10 50%, #8a6830 75%, #d4a840 100%)',
+  'radial-gradient(ellipse 80% 60% at 50% 45%, #0c0804 0%, #1a1008 25%, #3a2010 50%, #8a4820 75%, #d46020 100%)',
+  'radial-gradient(ellipse 80% 60% at 50% 45%, #0c0404 0%, #1a0808 25%, #3a1010 50%, #7a2020 75%, #d44040 100%)',
+];
+
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let S;
+let workTick = null;
+
+function defaultState() {
+  return {
+    day: TODAY,
+    work:       { sessions:[], running:false, startedAt:null },
+    cigs:       { log:[] },
+    gym:        { days:[] },
+    goals: [
+      { id:1, text:'Review morning plan', done:false },
+      { id:2, text:'Ship landing page copy', done:false },
+      { id:3, text:'Workout — push day', done:false },
+    ],
+    portuguese: {
+      weekDays:[],
+      tasks:[
+        { text:'Verb conjugations', done:false },
+        { text:'Reading passage', done:false },
+        { text:'Listening exercise', done:false },
+        { text:'Write 5 sentences', done:false },
+      ],
+    },
+    streak: 0,
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const s = JSON.parse(raw);
+    if (s.day !== TODAY) {
+      return {
+        ...s, day:TODAY,
+        work:{ sessions:[], running:false, startedAt:null },
+        cigs:{ log:[] },
+        goals:(s.goals||[]).map(g => ({...g, done:false})),
+        portuguese:{
+          weekDays: (s.portuguese||{}).weekDays || [],
+          tasks: ((s.portuguese||{}).tasks || defaultState().portuguese.tasks)
+            .map(t => ({...t, done:false})),
+        },
+        streak: (s.streak||0) + 1,
+      };
+    }
+    return { ...defaultState(), ...s };
+  } catch(e) { return defaultState(); }
+}
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch(e) {}
+}
+
+// ════════════════════════════════════════════
+//  APPS SCRIPT SYNC
+// ════════════════════════════════════════════
+async function syncToServer(action, data) {
+  const url = localStorage.getItem('script_url');
+  if (!url) return;
+  try {
+    // Apps Script redirects the first POST (302→GET loses the body).
+    // Sending as text/plain avoids the preflight; body is still valid JSON.
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, data }),
+      redirect: 'follow',
+    });
+  } catch(e) { console.warn('sync failed:', action, e.message); }
+}
+
+function syncCigs()  { syncToServer('logCigarette', { date:TODAY, count:(S.cigs.log||[]).length, timestamps:S.cigs.log||[] }); }
+function syncGym(key, done) { syncToServer('logGym', { date:key, done, loggedAt:Date.now() }); }
+function syncGoals() { syncToServer('saveGoals', { date:TODAY, goals:S.goals }); }
+function syncPt()    { syncToServer('logPortuguese', { date:TODAY, done:ptDoneToday(), loggedAt:Date.now() }); }
+function syncSession(sess, num) {
+  syncToServer('logSession', { date:TODAY, sessionNum:num, start:fmtClock(sess.start), end:fmtClock(sess.end), duration:Math.round((sess.end-sess.start)/60000) });
+}
+
+async function fetchTodayFromServer() {
+  const url = localStorage.getItem('script_url');
+  if (!url) return;
+  try {
+    const res  = await fetch(`${url}?action=getToday&date=${TODAY}`);
+    const json = await res.json();
+    if (!json.ok || !json.data) return;
+    const serverGoals = json.data.goals || [];
+    if (!serverGoals.length) return;
+    const localTexts = new Set((S.goals||[]).map(g => g.text.toLowerCase()));
+    const maxId = Math.max(0, ...(S.goals||[]).map(g => g.id));
+    let added = 0;
+    serverGoals.forEach((sg, i) => {
+      if (!sg.text || localTexts.has(sg.text.toLowerCase())) return;
+      S.goals.push({ id:maxId+i+1, text:sg.text, done:sg.done||false });
+      added++;
+    });
+    if (added > 0) { save(); renderGoalsCard(); }
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════
+function getMonday() {
+  const d = new Date(_now);
+  d.setDate(d.getDate() - DOW);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function gymThisWeek() {
+  const mon = getMonday();
+  return (S.gym.days||[]).filter(k => new Date(k+'T00:00:00') >= mon).length;
+}
+
+function workTotalSec(ts = Date.now()) {
+  const ms = (S.work.sessions||[]).reduce((a,x) => a+(x.end-x.start), 0)
+    + (S.work.running ? ts - S.work.startedAt : 0);
+  return Math.floor(ms / 1000);
+}
+
+function ptInWeek() {
+  const mon = getMonday();
+  return (S.portuguese.weekDays||[]).filter(k => new Date(k+'T00:00:00') >= mon).length;
+}
+
+function ptDoneToday() {
+  return (S.portuguese.weekDays||[]).includes(TODAY);
+}
+
+function willState(n) { return WILL.find(w => n <= w.max) || WILL[WILL.length-1]; }
+
+function fmtHMS(s) {
+  s = Math.max(0,s);
+  return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+function fmtMS(s)   { s=Math.max(0,s); return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+function fmtClock(ts) { const d=new Date(ts); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function setNeedle(id, pct) {
+  const el = document.getElementById(id);
+  if (el) el.style.left = (Math.max(0,Math.min(1,pct))*100)+'%';
+}
+
+function mkCheck(done) {
+  const d = document.createElement('div');
+  d.className = 'g-check' + (done ? ' on' : '');
+  if (done) d.innerHTML = `<svg width="11" height="11" viewBox="0 0 16 16"><path d="M3 8l3.5 3.5L13 5" stroke="#0a1530" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  return d;
+}
+
+// ════════════════════════════════════════════
+//  SCORE
+// ════════════════════════════════════════════
+function calcScore(ts = Date.now()) {
+  // 0–3 cigs = full score (within limit). Each one over 3 costs 33 pts.
+  const cigCount = (S.cigs.log||[]).length;
+  const cigPct   = cigCount <= 3 ? 1 : Math.max(0, 1 - (cigCount - 3) / 3);
+  const gymPct  = Math.min(1, gymThisWeek() / 5);
+  const done    = (S.goals||[]).filter(g => g.done).length;
+  const goalPct = (S.goals||[]).length ? done / S.goals.length : 0;
+
+  if (!IS_WORK_DAY) {
+    // Rest day: only cigs + gym + goals count
+    return Math.round((cigPct + gymPct + goalPct) / 3 * 100);
+  }
+  const workPct = Math.min(1, workTotalSec(ts) / (8*3600));
+  const portPct = Math.min(1, ptInWeek() / 4);
+  return Math.round((workPct + cigPct + gymPct + goalPct + portPct) / 5 * 100);
+}
+
+// ════════════════════════════════════════════
+//  RENDER HERO
+// ════════════════════════════════════════════
+
+function renderHero() {
+  // Day chips
+  const chips = document.getElementById('day-chips');
+  chips.innerHTML = '';
+  const mon    = getMonday();
+  const gymSet = new Set(S.gym.days||[]);
+  DAYS_LBL.forEach((lbl, i) => {
+    const cd  = new Date(mon); cd.setDate(mon.getDate() + i);
+    const key = `${cd.getFullYear()}-${String(cd.getMonth()+1).padStart(2,'0')}-${String(cd.getDate()).padStart(2,'0')}`;
+    const el  = document.createElement('div');
+    el.className = 'chip' + (i===DOW ? ' today' : gymSet.has(key) ? ' gym' : '');
+    el.textContent = lbl;
+    chips.appendChild(el);
+  });
+  updateScore();
+}
+
+function updateScore() {
+  const score = calcScore();
+  document.getElementById('score-dotnum').innerHTML     = dotNumSVG(String(score), 10, 2, '#fff', true);
+  document.getElementById('score-pct-dotnum').innerHTML = dotNumSVG('%', 7, 1, 'rgba(255,255,255,0.45)', false);
+}
+
+// ════════════════════════════════════════════
+//  RENDER CARDS
+// ════════════════════════════════════════════
+function renderWorkCard() {
+  const sec = workTotalSec();
+  const h   = Math.floor(sec / 3600);
+  const m   = Math.floor((sec % 3600) / 60);
+  const pct = Math.min(1, sec / (8*3600));
+  const s   = sec % 60;
+  document.getElementById('work-val').textContent = `${h}h ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  setNeedle('work-needle', pct);  // work card doesn't have needle in HTML, use gauge
+  document.getElementById('gauge-ring').setAttribute('stroke-dashoffset', CIRC35*(1-pct));
+  document.getElementById('gauge-label').textContent = h;
+  const dot = document.getElementById('work-live-dot');
+  const txt = document.getElementById('work-status-txt');
+  if (S.work.running) {
+    dot.style.display='inline-block'; txt.textContent='tap to stop';
+  } else {
+    dot.style.display='none';
+    txt.textContent = IS_WORK_DAY ? 'tap to start · 8h target' : 'day off · tap to track anyway';
+  }
+}
+
+function renderCigCard() {
+  const count = (S.cigs.log||[]).length;
+  document.getElementById('card-cig').style.background = CIG_GRADS[Math.min(count, CIG_GRADS.length-1)];
+  document.getElementById('cig-val').textContent = count;
+  document.getElementById('cig-undo').style.display = count > 0 ? 'inline' : 'none';
+  setNeedle('cig-needle', Math.min(1, count/3));
+}
+
+function renderGymCard() {
+  const n       = gymThisWeek();
+  const didToday = (S.gym.days||[]).includes(TODAY);
+  document.getElementById('gym-val').textContent = n;
+  document.getElementById('gym-today-badge').style.display = didToday ? 'inline' : 'none';
+  const dotsEl = document.getElementById('gym-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < n ? ' on' : '');
+    d.style.width = d.style.height = '11px';
+    dotsEl.appendChild(d);
+  }
+}
+
+function renderGoalsCard() {
+  const goals = (S.goals||[]).slice(0, 3);
+  const done  = goals.filter(g => g.done).length;
+  document.getElementById('goals-done-big').textContent = done;
+  document.getElementById('goals-total-big').textContent = `/ ${goals.length}`;
+  const list = document.getElementById('goals-list');
+  list.innerHTML = '';
+  if (!goals.length) {
+    list.innerHTML = '<div class="label" style="font-size:12px;color:rgba(255,255,255,0.38);text-align:center;padding:6px;">waiting for morning goals...</div>';
+    return;
+  }
+  goals.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'g-row';
+    row.onclick = e => { e.stopPropagation(); toggleGoal(g.id); };
+    row.appendChild(mkCheck(g.done));
+    const t = document.createElement('span');
+    t.className = 'g-text' + (g.done ? ' done' : '');
+    t.textContent = g.text;
+    row.appendChild(t);
+    list.appendChild(row);
+  });
+}
+
+function renderPtCard() {
+  const inWeek  = ptInWeek();
+  const target  = 4;
+  const didToday = ptDoneToday();
+  document.getElementById('pt-val').textContent = inWeek;
+  document.getElementById('pt-today-badge').style.display = didToday ? 'inline' : 'none';
+  const dotsEl = document.getElementById('pt-dots');
+  dotsEl.innerHTML = '';
+  dotsEl.style.display = 'grid';
+  dotsEl.style.gridTemplateColumns = 'repeat(2, 1fr)';
+  dotsEl.style.gap = '8px';
+  for (let i = 0; i < target; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < inWeek ? ' on' : '');
+    d.style.width = d.style.height = '10px';
+    dotsEl.appendChild(d);
+  }
+}
+
+function renderStreakCard() {
+  const streak = S.streak || 0;
+  document.getElementById('streak-days-lbl').textContent = `${streak}d`;
+  document.getElementById('streak-dots').innerHTML = streakDotsSVG(streak, 9, 6, '#c8a8ff', 10, 4);
+}
+
+function renderAll() {
+  // Dim work + pt cards on rest days — no extra labels, just opacity
+  document.getElementById('card-work').style.opacity = IS_WORK_DAY ? '1' : '0.52';
+  document.getElementById('card-pt').style.opacity   = IS_WORK_DAY ? '1' : '0.52';
+  renderHero(); renderWorkCard(); renderCigCard();
+  renderGymCard(); renderGoalsCard(); renderPtCard(); renderStreakCard();
+}
+
+// ════════════════════════════════════════════
+//  WORK
+// ════════════════════════════════════════════
+function toggleWork() {
+  if (S.work.running) {
+    const sess = { start:S.work.startedAt, end:Date.now() };
+    S.work.sessions.push(sess);
+    S.work.running = false; S.work.startedAt = null;
+    clearInterval(workTick); workTick = null;
+    save();
+    syncSession(sess, S.work.sessions.length);
+  } else {
+    S.work.running = true; S.work.startedAt = Date.now();
+    workTick = setInterval(() => { renderWorkCard(); updateScore(); }, 1000);
+    save();
+  }
+  renderWorkCard(); updateScore();
+}
+
+// ════════════════════════════════════════════
+//  CIGARETTES
+// ════════════════════════════════════════════
+function addCig()    { S.cigs.log.push(Date.now()); save(); syncCigs(); renderCigCard(); updateScore(); }
+function removeCig() { if (S.cigs.log.length) S.cigs.log.pop(); save(); syncCigs(); renderCigCard(); updateScore(); }
+function resetCigs() { S.cigs.log=[]; save(); syncCigs(); renderCigCard(); updateScore(); }
+
+// ════════════════════════════════════════════
+//  GYM
+// ════════════════════════════════════════════
+function toggleGymDay(key) {
+  const idx = (S.gym.days||[]).indexOf(key);
+  const adding = idx < 0;
+  if (adding) S.gym.days.push(key);
+  else S.gym.days.splice(idx, 1);
+  save(); syncGym(key, adding);
+  renderGymCard(); renderHero(); updateScore();
+}
+
+function toggleGymToday() { toggleGymDay(TODAY); }
+
+// ════════════════════════════════════════════
+//  GOALS
+// ════════════════════════════════════════════
+function toggleGoal(id) {
+  S.goals = S.goals.map(g => g.id===id ? {...g, done:!g.done} : g);
+  save(); syncGoals(); renderGoalsCard(); updateScore();
+}
+
+// ════════════════════════════════════════════
+//  PORTUGUESE (day-count model)
+// ════════════════════════════════════════════
+function togglePtToday() {
+  const has = ptDoneToday();
+  if (has) S.portuguese.weekDays = (S.portuguese.weekDays||[]).filter(d => d!==TODAY);
+  else S.portuguese.weekDays = [...(S.portuguese.weekDays||[]), TODAY];
+  save(); syncPt(); renderPtCard(); updateScore();
+}
+
+// ════════════════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('url-inp').value = localStorage.getItem('script_url') || '';
+  document.getElementById('key-inp').value = localStorage.getItem('gemini_key') || '';
+  document.getElementById('settings').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings').classList.remove('open'); }
+function saveSettings() {
+  const url = document.getElementById('url-inp').value.trim();
+  const key = document.getElementById('key-inp').value.trim();
+  url ? localStorage.setItem('script_url', url) : localStorage.removeItem('script_url');
+  key ? localStorage.setItem('gemini_key', key) : localStorage.removeItem('gemini_key');
+  // Clear cached insight so Gemini is retried with the new key
+  localStorage.removeItem('insightv2_'+TODAY);
+  closeSettings(); showToast('Settings saved'); fetchInsight(); fetchGeoSignal();
+}
+
+// ════════════════════════════════════════════
+//  AI INSIGHT
+// ════════════════════════════════════════════
+function staticInsight(score) {
+  const h = _now.getHours();
+  if (score>=90) return 'cleared. hold the evening.';
+  if (score>=75) return h<15 ? 'solid morning. afternoon decides it.' : 'good day. lock it in.';
+  if (score>=50) return h<12 ? 'early — still a lot of runway.' : 'one more action changes this.';
+  if (score>=30) return 'pick one thing and do it.';
+  return 'start. anything. now.';
+}
+
+const GEMINI_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-001',
+  'gemini-flash-latest',
+];
+
+async function callGemini(key, prompt, temp = 1.1) {
+  for (const model of GEMINI_MODELS) {
+    try {
+      const res  = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{ parts:[{ text: prompt }]}],
+          generationConfig:{ temperature: temp, maxOutputTokens: 120 },
+        }),
+      });
+      const json = await res.json();
+      if (json.error) { console.warn(`${model} error:`, json.error.message); continue; }
+      const text = (json.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
+      if (text) return { model, text };
+    } catch(e) { console.warn(`${model} failed:`, e.message); }
+  }
+  return null;
+}
+
+async function fetchInsight() {
+  const score  = calcScore();
+  const insEl  = document.getElementById('hero-insight');
+  insEl.textContent = staticInsight(score);
+  const key = localStorage.getItem('gemini_key');
+  if (!key) return;
+
+  const now  = Date.now();
+  const h    = _now.getHours();
+  const timeCtx = h < 6 ? 'early morning' : h < 10 ? 'morning' : h < 13 ? 'late morning' : h < 16 ? 'early afternoon' : h < 19 ? 'late afternoon' : 'evening';
+
+  // — what has happened today —
+  const cigCount    = (S.cigs.log||[]).length;
+  const lastCigMs   = S.cigs.log?.length ? now - S.cigs.log[S.cigs.log.length - 1] : null;
+  const lastCigStr  = lastCigMs !== null ? `last one ${Math.round(lastCigMs/60000)} min ago` : 'none today';
+  const gymToday    = (S.gym.days||[]).includes(TODAY);
+  const workHours   = (workTotalSec()/3600).toFixed(1);
+  const workRunning = S.work.running;
+  const lastSess    = (S.work.sessions||[]).slice(-1)[0];
+  const workCtx     = workRunning ? 'currently tracking work' : lastSess ? `last session ended ${Math.round((now - lastSess.end)/60000)} min ago` : 'no work logged yet';
+  const pendingGoals = (S.goals||[]).filter(g => !g.done).map(g => g.text).join(', ') || 'all done or none set';
+  const doneGoals   = (S.goals||[]).filter(g => g.done).length;
+  const totalGoals  = (S.goals||[]).length;
+
+  // — rotate topic on every load for variety —
+  const TOPICS = ['adhd', 'smoking', 'consistency', 'nonneg'];
+  const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
+
+  const topicAngle = {
+    adhd:        `Write 1-2 sentences of specific ADHD coaching. Name a real mechanism (e.g. "your prefrontal cortex underproduces dopamine until a task is started — use the 2-minute rule to trick it into engaging") or a named technique with why it works for ADHD brains specifically. Must feel like advice from someone who deeply gets ADHD, not a generic tip.`,
+    smoking:     `Write 1-2 sentences of specific smoking advice. Today: ${cigCount} cigarettes, limit 3, ${lastCigStr}. Reference craving science, urge surfing, delay tactics, or substitution — and tie it to the user's actual situation right now. Make it practical and non-judgmental.`,
+    consistency: `Write 1-2 sentences about consistency and showing up. Use a specific concept: identity-based habits, the "never miss twice" rule, minimum viable reps, habit stacking, or why ADHD brains need external structure more than willpower. Connect to something in their data today.`,
+    nonneg:      `Write 1-2 sentences about protecting non-negotiables (work, gym, staying under 3 cigarettes, Portuguese study). Use a specific tactic: implementation intention ("when X then Y"), commitment device, reducing friction, or if-then planning. Be concrete about what to do right now.`,
+  };
+
+  const prompt = `You are a world-class ADHD coach and behavioural scientist. You deeply understand ADHD, habit formation, and behaviour change. You speak directly to the user — sharp, warm, and specific. Never vague. Never a label. Always a complete thought with real content.
+
+USER DATA RIGHT NOW:
+- Time: ${timeCtx} (${h}:00), ${IS_WORK_DAY ? 'work day (Tue–Sat)' : 'rest day (Sun/Mon)'}
+- Score today: ${score}%
+- Work: ${workHours}h logged, ${workCtx}
+- Cigarettes: ${cigCount} today (limit 3), ${lastCigStr}
+- Gym: ${gymToday ? 'done ✓' : 'not yet'}
+- Goals: ${doneGoals}/${totalGoals} done — pending: ${pendingGoals}
+
+YOUR TASK — ${topicAngle[topic]}
+
+STRICT FORMAT:
+- Must be a complete sentence (or two) — never a fragment, label, or title
+- 15–40 words total
+- lowercase only, no period at the end
+- no em-dashes, no bullet points, no colons, no quotes
+- output ONLY the coaching text, nothing else
+
+BAD examples (too short, vague, or label-like): "remember the dopamine" / "addressing task initiation" / "consistency matters"
+GOOD examples: "set a 5-minute timer and open just one task — your brain will often continue once the initiation barrier is crossed" / "if a craving hits, delay it by 10 minutes and drink water — most cravings peak and fade within that window"`;
+
+  const result = await callGemini(key, prompt, 1.25);
+  if (!result) return;
+  const raw = result.text
+    .replace(/\n.*/s, '')
+    .replace(/^["'"""']+|["'"""']+$/g, '')
+    .replace(/\.$/, '')
+    .replace(/—/g, '–')
+    .toLowerCase()
+    .trim();
+  if (raw && raw.length > 30 && raw.length < 220) {
+    insEl.style.opacity = '0';
+    setTimeout(() => { insEl.textContent = raw; insEl.style.opacity = ''; }, 300);
+  }
+}
+
+// ════════════════════════════════════════════
+//  GEO INTEL
+// ════════════════════════════════════════════
+let geoDocUrl = 'https://docs.google.com/document/d/1GsnJqK472-RfL8ygfRCbDD7pmuWb9tKlFfp7AqC3dMI/edit';
+
+async function fetchGeoSignal() {
+  const scriptUrl = localStorage.getItem('script_url');
+  const card = document.getElementById('card-geo');
+  if (!scriptUrl) { if(card) card.style.display='none'; return; }
+  try {
+    const res  = await fetch(`${scriptUrl}?action=getTodaySignal&date=${TODAY}`);
+    const json = await res.json();
+    if (json.ok && json.data) {
+      if (json.data.docUrl) geoDocUrl = json.data.docUrl;
+      if (json.data.found && card) card.style.display = 'flex';
+      renderGeoCard(json.data);
+    }
+  } catch(e) {}
+}
+
+function renderGeoCard(data) {
+  const el = document.getElementById('geo-content'); if(!el) return;
+  if (!data.found) { el.innerHTML='<span style="opacity:0.4;font-style:italic;">No signal yet — intel arrives at 09:00.</span>'; return; }
+  const hl = data.headline ? `<div style="font-weight:500;margin-bottom:4px;">${esc(data.headline)}</div>` : '';
+  const pv = data.preview  ? `<div style="opacity:0.55;font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${esc(data.preview)}</div>` : '';
+  el.innerHTML = hl + pv;
+}
+
+function openGeoDoc() { window.open(geoDocUrl, '_blank'); }
+
+// ════════════════════════════════════════════
+//  MORNING GOALS INJECTION
+// ════════════════════════════════════════════
+window.injectMorningGoals = function(goals) {
+  if (!Array.isArray(goals)) return;
+  const maxId = Math.max(0, ...(S.goals||[]).map(g => g.id));
+  const newGoals = [];
+  goals.forEach((text,i) => {
+    if (text && typeof text==='string') {
+      const g = { id:maxId+i+1, text:text.trim(), done:false };
+      S.goals.push(g); newGoals.push(g);
+    }
+  });
+  save(); renderGoalsCard();
+  showToast(`${newGoals.length} goals added`);
+  syncToServer('injectMorningGoals', { date:TODAY, goals:newGoals });
+};
+
+// ════════════════════════════════════════════
+//  CONNECTION TEST
+// ════════════════════════════════════════════
+async function testConnections() {
+  const out = document.getElementById('test-out');
+  out.textContent = 'testing…';
+  const lines = [];
+
+  // 1 — Apps Script GET
+  const url = localStorage.getItem('script_url');
+  if (!url) {
+    lines.push('⚠️ Script URL not set');
+  } else {
+    try {
+      const res  = await fetch(`${url}?action=getToday&date=${TODAY}`);
+      const text = await res.text();
+      try {
+        const json = JSON.parse(text);
+        lines.push(json.ok ? '✅ Apps Script — connected' : `❌ Apps Script — ok:false  ${json.error||''}`);
+      } catch(e) {
+        lines.push(`❌ Apps Script — bad JSON (${text.slice(0,80)})`);
+      }
+    } catch(e) {
+      lines.push(`❌ Apps Script — network error: ${e.message}`);
+    }
+
+    // 1b — test POST
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'logCigarette', data: { date: TODAY, count: (S.cigs.log||[]).length } }),
+        redirect: 'follow',
+      });
+      lines.push('✅ Apps Script POST — sent (check sheet)');
+    } catch(e) {
+      lines.push(`❌ Apps Script POST failed: ${e.message}`);
+    }
+  }
+
+  // 2 — Gemini: first check if key is valid, then try models
+  const key = localStorage.getItem('gemini_key');
+  if (!key) {
+    lines.push('⚠️ Gemini key not set');
+  } else {
+    try {
+      const listRes  = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+      const listJson = await listRes.json();
+      if (listJson.error) {
+        lines.push(`❌ Gemini key invalid — ${listJson.error.message}`);
+      } else {
+        const names = (listJson.models||[]).filter(m => m.name.includes('flash')).map(m => m.name.replace('models/','')).join(', ');
+        lines.push(`🔑 Key OK — flash models: ${names||'none found'}`);
+        const r = await callGemini(key, 'say: ok');
+        if (r) lines.push(`✅ Gemini — connected (${r.model})`);
+        else lines.push('❌ Gemini — key works but no model responded');
+      }
+    } catch(e) {
+      lines.push(`❌ Gemini — ${e.message}`);
+    }
+  }
+
+  out.textContent = lines.join('\n');
+}
+
+// ════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════
+let _tt;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'), 2800);
+}
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+function init() {
+  S = loadState();
+  renderAll();
+  if (S.work.running) {
+    workTick = setInterval(() => { renderWorkCard(); updateScore(); }, 1000);
+  }
+
+  fetchInsight();
+  setTimeout(fetchGeoSignal, 400);
+  setTimeout(fetchTodayFromServer, 800);
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+init();
+</script>
+</body>
+</html>
