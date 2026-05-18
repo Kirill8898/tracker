@@ -1030,13 +1030,18 @@ async function fetchGeoSignal() {
   if (!scriptUrl) { if(card) card.style.display='none'; return; }
   try {
     const res  = await fetch(`${scriptUrl}?action=getTodaySignal&date=${TODAY}`);
-    const json = await res.json();
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); } catch(e) { console.error('Geo parse error:', text.substring(0,200)); return; }
+    console.log('Geo response:', JSON.stringify(json).substring(0,300));
     if (json.ok && json.data) {
       if (json.data.docUrl) geoDocUrl = json.data.docUrl;
       if (json.data.found && card) card.style.display = 'flex';
       renderGeoCard(json.data);
+    } else {
+      console.warn('Geo not ok:', json);
     }
-  } catch(e) {}
+  } catch(e) { console.error('Geo fetch error:', e.message); }
 }
 
 let _geoData = null;
