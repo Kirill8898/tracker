@@ -1115,8 +1115,15 @@ async function fetchGeoSignal() {
       return;
     }
     if (json.ok && json.data) {
-      if (json.data.docUrl) geoDocUrl = json.data.docUrl;
-      renderGeoCard(json.data);
+      const d = json.data;
+      if (d.docUrl) geoDocUrl = d.docUrl;
+      // New: server returns rawText, frontend parses it
+      if (d.rawText) {
+        const parsed = parseDocForDate(d.rawText, TODAY);
+        renderGeoCard(parsed ? { found: true, docUrl: d.docUrl, ...parsed } : { found: false, docUrl: d.docUrl });
+      } else {
+        renderGeoCard(d);
+      }
     } else {
       console.warn('Geo not ok:', json);
       if (hlEl) { hlEl.style.opacity = '1'; hlEl.textContent = json.error || 'no data'; }
@@ -1128,6 +1135,78 @@ async function fetchGeoSignal() {
 }
 
 let _geoData = null;
+
+// Parse raw Google Doc text to find today's intel entry (all logic in JS, no server parsing)
+function parseDocForDate(rawText, date) {
+  const lines = rawText.split('\n');
+
+  // Build the date string the intel script uses: "May 19, 2026"
+  const d = new Date(date + 'T12:00:00');
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const altDate    = MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  const dayOfMonth = String(d.getDate()); // '19'
+
+  // Find header line: contains altDate OR is a MINCO LABS/Intel line with today's day number
+  let startIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.includes(altDate)) { startIdx = i; break; }
+    if (/MINCO\s*LABS/i.test(l) && /Intel/i.test(l) && l.includes(' ' + dayOfMonth + ',')) {
+      startIdx = i; break;
+    }
+  }
+  if (startIdx === -1) {
+    console.warn('intel: no entry found for', date, '— searched for:', altDate, '| first lines:', lines.slice(0,5));
+    return null;
+  }
+
+  // End boundary: next MINCO LABS entry OR long separator line
+  let endIdx = lines.length;
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const l = lines[i];
+    if ((/MINCO\s*LABS/i.test(l) && /Intel/i.test(l) && !l.includes(altDate) && !l.includes(' ' + dayOfMonth + ',')) ||
+        /^[─—\-=]{10,}$/.test(l.trim())) {
+      endIdx = i; break;
+    }
+  }
+
+  const entryLines = lines.slice(startIdx + 1, endIdx);
+  const body = entryLines.join('\n').trim();
+  if (!body) return null;
+
+  // Headline: from TODAY'S SIGNAL section
+  let headline = '';
+  for (let i = 0; i < entryLines.length; i++) {
+    if (/TODAY'S SIGNAL/i.test(entryLines[i])) {
+      for (let j = i + 1; j < Math.min(i + 6, entryLines.length); j++) {
+        const l = entryLines[j].trim();
+        if (l && !/^[═─#\-\*=]{2,}/.test(l)) { headline = cleanIntelMd(l); break; }
+      }
+      break;
+    }
+  }
+  // Fallback: first bullet
+  if (!headline) {
+    for (const l of entryLines) {
+      const t = l.trim();
+      if ((t.startsWith('*') || t.startsWith('-')) && t.length > 30) {
+        headline = cleanIntelMd(t); break;
+      }
+    }
+  }
+
+  // Preview: first intel bullet (different from headline)
+  let preview = '';
+  for (const l of entryLines) {
+    const t = l.trim();
+    if ((t.startsWith('*') || t.startsWith('-')) && t.length > 30) {
+      const clean = cleanIntelMd(t);
+      if (clean !== headline && clean.length > 20) { preview = clean.substring(0, 160); break; }
+    }
+  }
+
+  return { date, headline: headline.substring(0, 200), preview, body };
+}
 
 function renderGeoCard(data) {
   _geoData = data;
