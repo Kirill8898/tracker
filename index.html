@@ -46,7 +46,7 @@ html, body {
   flex:1; display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:10px;
 }
-.hero-insight { font-size:15px; color:rgba(255,255,255,0.68); letter-spacing:0.1px; text-align:center; max-width:360px; line-height:1.75; transition: opacity 300ms ease; }
+.hero-insight { font-size:15px; color:rgba(255,255,255,0.68); letter-spacing:0.1px; text-align:center; max-width:340px; line-height:1.8; transition: opacity 300ms ease; }
 .hero-insight.loading { opacity: 0.35; }
 @keyframes blink { 0%,100%{opacity:0.2} 50%{opacity:0.7} }
 .insight-dots span { animation: blink 1.4s ease-in-out infinite; }
@@ -998,7 +998,7 @@ async function callGemini(key, prompt, temp = 1.1) {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           contents:[{ parts:[{ text: prompt }]}],
-          generationConfig:{ temperature: temp, maxOutputTokens: 420 },
+          generationConfig:{ temperature: temp, maxOutputTokens: 600 },
         }),
       });
       const json = await res.json();
@@ -1068,9 +1068,12 @@ Their data right now:
 
 Your message should: ${angle}
 
-Name the specific ADHD mechanism at play. Give one concrete action they can take right now. End with a short sharp line that anchors their next 10 minutes. Be direct and warm — like a coach who truly gets ADHD, not a productivity blog.
+Structure your response as EXACTLY 3 sentences:
+- Sentence 1: name the specific ADHD mechanism happening right now (be precise, not generic)
+- Sentence 2: give one concrete action they can take in the next 5 minutes (specific, physical, doable)
+- Sentence 3: a short sharp anchor — what this one action unlocks for the rest of the day
 
-Write exactly 3 sentences. Lowercase only. No period at the end of the last sentence. No quotes. Output only the coaching text, nothing else.`;
+Rules: lowercase only. each sentence ends with a period EXCEPT the last one. no quotes. no lists. no line breaks between sentences. output the 3 sentences as one continuous paragraph, nothing else.`;
 
   const result = await callGemini(key, prompt, 0.9);
   if (!result) return;
@@ -1080,9 +1083,12 @@ Write exactly 3 sentences. Lowercase only. No period at the end of the last sent
     .replace(/\.+$/, '')
     .toLowerCase()
     .trim();
-  const looksComplete = raw.split(' ').length >= 12;
-  if (raw && raw.length > 60 && raw.length < 700 && looksComplete) {
+  const wordCount = raw.split(' ').length;
+  const looksComplete = wordCount >= 15;
+  if (raw && raw.length > 60 && raw.length < 900 && looksComplete) {
     insEl.textContent = raw;
+  } else {
+    console.warn('insight rejected:', raw.length, 'chars,', wordCount, 'words — raw:', raw.substring(0,100));
   }
 }
 
