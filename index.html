@@ -607,15 +607,22 @@ async function fetchTodayFromServer() {
     if (!json.ok || !json.data) return;
     const serverGoals = json.data.goals || [];
     if (!serverGoals.length) return;
-    const localTexts = new Set((S.goals||[]).map(g => g.text.toLowerCase()));
-    const maxId = Math.max(0, ...(S.goals||[]).map(g => g.id));
-    let added = 0;
-    serverGoals.forEach((sg, i) => {
-      if (!sg.text || localTexts.has(sg.text.toLowerCase())) return;
-      S.goals.push({ id:maxId+i+1, text:sg.text, done:sg.done||false });
-      added++;
-    });
-    if (added > 0) { save(); renderGoalsCard(); }
+
+    // Deduplicate server goals by text, take first 3 — server is source of truth
+    const seen = new Set();
+    const top3 = serverGoals.filter(g => {
+      if (!g.text || seen.has(g.text.toLowerCase())) return false;
+      seen.add(g.text.toLowerCase()); return true;
+    }).slice(0, 3);
+
+    // Preserve local done state for matching goals, then replace
+    const localDone = new Map((S.goals||[]).map(g => [g.text.toLowerCase(), g.done]));
+    S.goals = top3.map((g, i) => ({
+      id:   i + 1,
+      text: g.text,
+      done: localDone.has(g.text.toLowerCase()) ? localDone.get(g.text.toLowerCase()) : (g.done || false),
+    }));
+    save(); renderGoalsCard();
   } catch(e) {}
 }
 
