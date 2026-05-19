@@ -1002,13 +1002,17 @@ async function callGemini(key, prompt, temp = 1.1) {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           contents:[{ parts:[{ text: prompt }]}],
-          generationConfig:{ temperature: temp, maxOutputTokens: 1200 },
+          generationConfig:{ temperature: temp, maxOutputTokens: 2048 },
         }),
       });
       const json = await res.json();
       if (json.error) { console.warn(`${model} error:`, json.error.message); continue; }
-      const text = (json.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
-      if (text) return { model, text };
+      const candidate = json.candidates?.[0];
+      const text = (candidate?.content?.parts?.[0]?.text||'').trim();
+      const finishReason = candidate?.finishReason || 'unknown';
+      console.log(`[gemini] model=${model} finishReason=${finishReason} textLen=${text.length}`);
+      if (finishReason === 'MAX_TOKENS') console.warn('[gemini] HIT MAX_TOKENS — output was truncated!');
+      if (text) return { model, text, finishReason };
     } catch(e) { console.warn(`${model} failed:`, e.message); }
   }
   return null;
@@ -1060,28 +1064,22 @@ async function fetchInsight() {
     angle = angles[Math.floor(Math.random() * angles.length)];
   }
 
-  const prompt = `You are coaching someone with ADHD who is checking their daily habit tracker. They struggle with task initiation, fear of failure, perfectionism, and procrastination. Write them ONE coaching message for this exact moment.
+  const prompt = `You are an ADHD coach. Write exactly 3 sentences, nothing else — no intro, no labels, no quotes.
 
-Their data right now:
-- ${timeCtx} (${h}:00), ${IS_WORK_DAY ? 'work day' : 'rest day'}
-- score: ${score}%
-- work: ${workHours}h logged (${workCtx})
-- cigarettes: ${cigCount}/3 today (${lastCigStr})
-- gym: ${gymToday ? 'done' : 'not done'}
-- goals: ${doneGoals}/${totalGoals} done, pending: ${pendingGoals || 'none'}
+Context: ${timeCtx}, score ${score}%, work ${workHours}h (${workCtx}), cigarettes ${cigCount}/3 (${lastCigStr}), gym ${gymToday ? 'done' : 'not done'}, goals ${doneGoals}/${totalGoals} done.
 
-Your message should: ${angle}
+Focus: ${angle}
 
-Write 3 sentences as one paragraph. No line breaks. No bullet points. No labels. No preamble.
-
-Sentence 1 (20-30 words): Name the exact ADHD mechanism at play right now — be specific, not generic.
-Sentence 2 (20-30 words): One concrete physical action for the next 5 minutes — name the exact thing to open, write, or do.
-Sentence 3 (15-25 words): What shifts after doing that one thing.
-
-Formatting rules: all lowercase. period after sentence 1 and sentence 2. no period after sentence 3. output nothing except the 3 sentences.`;
+Rules:
+- Sentence 1: name the specific ADHD mechanism happening right now (not generic).
+- Sentence 2: one concrete 5-minute action — name the exact thing to open, write, or do.
+- Sentence 3: what changes after that one action.
+- All lowercase. End sentences 1 and 2 with a period. No period after sentence 3.
+- Output ONLY the 3 sentences. Nothing before or after.`;
 
   const result = await callGemini(key, prompt, 0.9);
   if (!result) return;
+  console.log('[insight] FULL TEXT:', result.text);
   const raw = result.text
     .split('\n').filter(l => l.trim()).join(' ')
     .replace(/^["'"""']+|["'"""']+$/g, '')
@@ -1089,8 +1087,7 @@ Formatting rules: all lowercase. period after sentence 1 and sentence 2. no peri
     .toLowerCase()
     .trim();
   const wordCount = raw.split(' ').length;
-  console.log('insight raw:', raw.length, 'chars,', wordCount, 'words |', raw.substring(0, 120));
-  // Accept anything 8+ words — let the model decide length, don't second-guess it
+  console.log('[insight] processed:', raw.length, 'chars,', wordCount, 'words');
   if (raw && wordCount >= 8) {
     insEl.textContent = raw;
   }
