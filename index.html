@@ -751,9 +751,9 @@ function mkCheck(done) {
 //  SCORE
 // ════════════════════════════════════════════
 function calcScore(ts = Date.now()) {
-  // 0–3 cigs = full score (within limit). Each one over 3 costs 33 pts.
+  // ≤3 cigs = full score, >3 = 0. Binary — no progressive penalty.
   const cigCount = (S.cigs.log||[]).length;
-  const cigPct   = cigCount <= 3 ? 1 : Math.max(0, 1 - (cigCount - 3) / 3);
+  const cigPct   = cigCount <= 3 ? 1 : 0;
   const gymPct  = Math.min(1, gymThisWeek() / 5);
   const done    = (S.goals||[]).filter(g => g.done).length;
   const goalPct = (S.goals||[]).length ? done / S.goals.length : 0;
