@@ -555,7 +555,7 @@ function loadState() {
         ...s, day:TODAY,
         work:{ sessions:[], running:false, startedAt:null },
         cigs:{ log:[] },
-        goals: [],
+        goals: (s.goals||[]).map(g => ({...g, done:false})),
         portuguese:{
           weekDays: (s.portuguese||{}).weekDays || [],
           tasks: ((s.portuguese||{}).tasks || defaultState().portuguese.tasks)
