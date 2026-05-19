@@ -151,53 +151,50 @@ html, body {
 /* ── geo journal modal ── */
 #geo-journal {
   position:fixed; inset:0; z-index:300;
-  background:rgba(0,0,0,0.8);
-  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  background:rgba(0,0,0,0.65);
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   display:none; align-items:flex-end;
 }
 #geo-journal.open { display:flex; }
 .geo-sheet {
-  background:#080f18;
-  border-radius:32px 32px 0 0;
+  background:#181818;
+  border-radius:28px 28px 0 0;
   width:100%;
   max-height:92vh;
   overflow-y:auto;
   padding:0;
-  animation:sheetUp 320ms cubic-bezier(0.16,1,0.3,1);
-  border-top:0.5px solid rgba(78,205,196,0.25);
+  animation:sheetUp 280ms cubic-bezier(0.16,1,0.3,1);
 }
 .geo-sheet-inner {
-  padding:28px 26px;
-  padding-bottom:max(40px, calc(env(safe-area-inset-bottom) + 24px));
+  padding:24px 22px;
+  padding-bottom:max(36px, calc(env(safe-area-inset-bottom) + 20px));
 }
 .geo-tag {
   display:inline-flex; align-items:center; gap:6px;
-  padding:5px 12px; border-radius:20px;
-  background:rgba(78,205,196,0.08); border:0.5px solid rgba(78,205,196,0.2);
-  font-size:10px; color:rgba(78,205,196,0.7); letter-spacing:1px; text-transform:uppercase;
+  font-size:11px; color:rgba(255,255,255,0.35); letter-spacing:0.3px;
 }
 .geo-journal-date {
-  font-size:12px; color:rgba(255,255,255,0.3); margin:12px 0 22px;
-  letter-spacing:0.3px; text-transform:uppercase;
+  font-size:12px; color:rgba(255,255,255,0.28); margin:10px 0 18px;
+  letter-spacing:0.2px;
 }
 .geo-journal-headline {
-  font-size:22px; font-weight:300; color:#fff; line-height:1.3;
-  margin-bottom:22px; letter-spacing:-0.2px;
+  font-size:21px; font-weight:400; color:#fff; line-height:1.35;
+  margin-bottom:20px; letter-spacing:-0.2px;
 }
-.geo-journal-body { font-size:15px; color:rgba(255,255,255,0.75); line-height:1.8; }
-.geo-journal-body .geo-p { margin-bottom:16px; }
+.geo-journal-body { font-size:15px; color:rgba(255,255,255,0.7); line-height:1.8; }
+.geo-journal-body .geo-p { margin-bottom:14px; }
 .geo-journal-body .geo-section-head {
-  font-size:13px; font-weight:600; color:#4ecdc4;
-  letter-spacing:0.3px;
-  margin:24px 0 10px; display:block;
-  padding-bottom:8px; border-bottom:0.5px solid rgba(78,205,196,0.2);
+  font-size:11px; font-weight:600; color:rgba(255,255,255,0.35);
+  letter-spacing:0.8px; text-transform:uppercase;
+  margin:22px 0 10px; display:block;
+  padding-bottom:8px; border-bottom:0.5px solid rgba(255,255,255,0.08);
 }
 .geo-journal-body .geo-bullet {
   display:flex; gap:12px; margin-bottom:12px; align-items:flex-start;
 }
 .geo-bullet-dot {
-  width:4px; height:4px; border-radius:50%; background:#4ecdc4;
-  opacity:0.6; flex-shrink:0; margin-top:9px;
+  width:3px; height:3px; border-radius:50%; background:rgba(255,255,255,0.4);
+  flex-shrink:0; margin-top:10px;
 }
 .geo-close {
   width:32px; height:32px; border-radius:16px;
@@ -383,10 +380,7 @@ html, body {
   <div class="geo-sheet">
     <div class="geo-sheet-inner">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div class="geo-tag">
-          <div style="width:5px;height:5px;border-radius:50%;background:#4ecdc4;box-shadow:0 0 6px #4ecdc4aa;"></div>
-          Intelligence Brief
-        </div>
+        <div class="geo-tag label">Intelligence</div>
         <button class="geo-close" onclick="closeGeoJournal()">
           <svg width="11" height="11" viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         </button>
@@ -394,8 +388,8 @@ html, body {
       <div class="geo-journal-date" id="geo-journal-date"></div>
       <div class="geo-journal-headline" id="geo-journal-headline"></div>
       <div class="geo-journal-body" id="geo-journal-body"></div>
-      <div style="margin-top:28px;padding-top:20px;border-top:0.5px solid rgba(255,255,255,0.07);text-align:center;">
-        <button onclick="openGeoDoc()" style="background:rgba(78,205,196,0.1);border:0.5px solid rgba(78,205,196,0.25);color:rgba(78,205,196,0.8);padding:13px 32px;border-radius:22px;font-size:14px;cursor:pointer;font-family:-apple-system,system-ui;letter-spacing:0.2px;">
+      <div style="margin-top:24px;padding-top:18px;border-top:0.5px solid rgba(255,255,255,0.07);">
+        <button onclick="openGeoDoc()" style="width:100%;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.55);padding:13px;border-radius:13px;font-size:14px;cursor:pointer;font-family:-apple-system,system-ui;letter-spacing:0.1px;">
           open source doc ↗
         </button>
       </div>
@@ -561,7 +555,7 @@ function loadState() {
         ...s, day:TODAY,
         work:{ sessions:[], running:false, startedAt:null },
         cigs:{ log:[] },
-        goals:(s.goals||[]).map(g => ({...g, done:false})),
+        goals: [],
         portuguese:{
           weekDays: (s.portuguese||{}).weekDays || [],
           tasks: ((s.portuguese||{}).tasks || defaultState().portuguese.tasks)
@@ -1068,7 +1062,9 @@ function renderGeoCard(data) {
   }
   const dateStr = data.date ? new Date(data.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}) : '';
   if (hlEl) { hlEl.style.opacity = '1'; hlEl.textContent = data.headline || ''; }
-  if (pvEl) pvEl.textContent = data.preview || '';
+  // preview: use explicit preview, or first 140 chars of body as fallback
+  const pvText = data.preview || (data.body || '').split('\n').find(l => l.trim().length > 30) || '';
+  if (pvEl) pvEl.textContent = pvText.replace(/^[*\-•]\s*/, '').replace(/\*\*/g,'').substring(0,140);
   if (dtEl) dtEl.textContent = dateStr;
 }
 
