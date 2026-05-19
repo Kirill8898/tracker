@@ -985,6 +985,7 @@ function staticInsight(score) {
 }
 
 const GEMINI_MODELS = [
+  'gemini-3.5-flash',
   'gemini-2.5-flash-preview-05-20',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
@@ -1422,9 +1423,20 @@ async function testConnections() {
         const gJson = JSON.parse(gText);
         if (gJson.ok && gJson.data) {
           const d = gJson.data;
-          lines.push(d.found
-            ? `✅ Geo Intel — found (${(d.headline||'').substring(0,60)}…)`
-            : `⚠️ Geo Intel — no entry for ${TODAY} in doc`);
+          if (d.found) {
+            lines.push(`✅ Geo Intel — found (${(d.headline||'').substring(0,60)}…)`);
+          } else {
+            lines.push(`⚠️ Geo Intel — no entry found`);
+            if (d.debug) {
+              lines.push(`   searched for: "${d.debug.altDate}"`);
+              lines.push(`   doc has ${d.debug.docLines} lines`);
+              if (d.debug.firstLines && d.debug.firstLines.length) {
+                lines.push(`   first lines: ${d.debug.firstLines.slice(0,3).map(l => '"'+l.substring(0,50)+'"').join(' | ')}`);
+              }
+            } else {
+              lines.push(`   (redeploy Code.gs to see debug info)`);
+            }
+          }
         } else {
           lines.push(`❌ Geo Intel — ${gJson.error||'bad response'}`);
         }
