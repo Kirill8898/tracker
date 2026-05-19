@@ -1002,7 +1002,7 @@ async function callGemini(key, prompt, temp = 1.1) {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           contents:[{ parts:[{ text: prompt }]}],
-          generationConfig:{ temperature: temp, maxOutputTokens: 600 },
+          generationConfig:{ temperature: temp, maxOutputTokens: 1200 },
         }),
       });
       const json = await res.json();
@@ -1089,11 +1089,10 @@ Formatting rules: all lowercase. period after sentence 1 and sentence 2. no peri
     .toLowerCase()
     .trim();
   const wordCount = raw.split(' ').length;
-  const looksComplete = wordCount >= 15;
-  if (raw && raw.length > 60 && raw.length < 900 && looksComplete) {
+  console.log('insight raw:', raw.length, 'chars,', wordCount, 'words |', raw.substring(0, 120));
+  // Accept anything 8+ words — let the model decide length, don't second-guess it
+  if (raw && wordCount >= 8) {
     insEl.textContent = raw;
-  } else {
-    console.warn('insight rejected:', raw.length, 'chars,', wordCount, 'words — raw:', raw.substring(0,100));
   }
 }
 
