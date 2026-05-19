@@ -1,5 +1,5 @@
 // Service Worker — Kirill's Tracker
-const CACHE = 'tracker-v4';
+const CACHE = 'tracker-v5';
 
 self.addEventListener('install', e => {
   e.waitUntil(self.skipWaiting());

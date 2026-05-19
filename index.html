@@ -472,6 +472,8 @@ html, body {
     <input class="s-inp" id="url-inp" type="url" placeholder="https://script.google.com/macros/s/…">
     <div class="s-lbl">Gemini API Key</div>
     <input class="s-inp" id="key-inp" type="password" placeholder="AIza…">
+    <div class="s-lbl">Intel Doc URL <span style="color:rgba(255,255,255,0.25);font-size:10px;">(paste your Minco Labs Google Doc link)</span></div>
+    <input class="s-inp" id="intel-doc-inp" type="url" placeholder="https://docs.google.com/document/d/…">
     <button class="s-save" onclick="saveSettings()">Save</button>
     <button class="s-save" onclick="testConnections()" style="background:rgba(255,255,255,0.08);color:#fff;margin-top:8px;font-weight:400;">Test connections</button>
     <div id="test-out" style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.7;min-height:0;"></div>
@@ -957,17 +959,19 @@ function togglePtToday() {
 //  SETTINGS
 // ════════════════════════════════════════════
 function openSettings() {
-  document.getElementById('url-inp').value = localStorage.getItem('script_url') || '';
-  document.getElementById('key-inp').value = localStorage.getItem('gemini_key') || '';
+  document.getElementById('url-inp').value       = localStorage.getItem('script_url')    || '';
+  document.getElementById('key-inp').value       = localStorage.getItem('gemini_key')    || '';
+  document.getElementById('intel-doc-inp').value = localStorage.getItem('intel_doc_url') || '';
   document.getElementById('settings').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings').classList.remove('open'); }
 function saveSettings() {
-  const url = document.getElementById('url-inp').value.trim();
-  const key = document.getElementById('key-inp').value.trim();
-  url ? localStorage.setItem('script_url', url) : localStorage.removeItem('script_url');
-  key ? localStorage.setItem('gemini_key', key) : localStorage.removeItem('gemini_key');
-  // Clear cached insight so Gemini is retried with the new key
+  const url      = document.getElementById('url-inp').value.trim();
+  const key      = document.getElementById('key-inp').value.trim();
+  const intelDoc = document.getElementById('intel-doc-inp').value.trim();
+  url      ? localStorage.setItem('script_url',    url)      : localStorage.removeItem('script_url');
+  key      ? localStorage.setItem('gemini_key',    key)      : localStorage.removeItem('gemini_key');
+  intelDoc ? localStorage.setItem('intel_doc_url', intelDoc) : localStorage.removeItem('intel_doc_url');
   localStorage.removeItem('insightv2_'+TODAY);
   closeSettings(); showToast('Settings saved'); fetchInsight(); fetchGeoSignal();
 }
@@ -1068,12 +1072,13 @@ Their data right now:
 
 Your message should: ${angle}
 
-Structure your response as EXACTLY 3 sentences:
-- Sentence 1: name the specific ADHD mechanism happening right now (be precise, not generic)
-- Sentence 2: give one concrete action they can take in the next 5 minutes (specific, physical, doable)
-- Sentence 3: a short sharp anchor — what this one action unlocks for the rest of the day
+Write 3 sentences as one paragraph. No line breaks. No bullet points. No labels. No preamble.
 
-Rules: lowercase only. each sentence ends with a period EXCEPT the last one. no quotes. no lists. no line breaks between sentences. output the 3 sentences as one continuous paragraph, nothing else.`;
+Sentence 1 (20-30 words): Name the exact ADHD mechanism at play right now — be specific, not generic.
+Sentence 2 (20-30 words): One concrete physical action for the next 5 minutes — name the exact thing to open, write, or do.
+Sentence 3 (15-25 words): What shifts after doing that one thing.
+
+Formatting rules: all lowercase. period after sentence 1 and sentence 2. no period after sentence 3. output nothing except the 3 sentences.`;
 
   const result = await callGemini(key, prompt, 0.9);
   if (!result) return;
@@ -1097,27 +1102,62 @@ Rules: lowercase only. each sentence ends with a period EXCEPT the last one. no 
 // ════════════════════════════════════════════
 let geoDocUrl = 'https://docs.google.com/document/d/1GsnJqK472-RfL8ygfRCbDD7pmuWb9tKlFfp7AqC3dMI/edit';
 
+// Extract Google Doc ID from a full URL or bare ID string
+function extractDocId(urlOrId) {
+  if (!urlOrId) return null;
+  const m = urlOrId.match(/\/document\/d\/([a-zA-Z0-9_-]{20,})/);
+  return m ? m[1] : (urlOrId.length > 20 ? urlOrId.trim() : null);
+}
+
 async function fetchGeoSignal() {
-  const scriptUrl = localStorage.getItem('script_url');
+  const scriptUrl  = localStorage.getItem('script_url');
+  const intelDocRaw = localStorage.getItem('intel_doc_url');
   const card = document.getElementById('card-geo');
-  if (!scriptUrl) { if(card) card.style.display='none'; return; }
-  // Show card in loading state right away
+
+  // Need at least one source configured
+  if (!scriptUrl && !intelDocRaw) { if (card) card.style.display = 'none'; return; }
   if (card) card.style.display = 'flex';
   const hlEl = document.getElementById('geo-headline');
   if (hlEl) { hlEl.style.opacity = '0.35'; hlEl.textContent = 'loading intel…'; }
+
+  // ── STRATEGY 1: Direct Google Doc fetch (no Code.gs needed) ──────────────
+  const docId = extractDocId(intelDocRaw);
+  if (docId) {
+    try {
+      const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+      const res = await fetch(exportUrl);
+      if (res.ok) {
+        const raw = await res.text();
+        const parsed = parseDocForDate(raw, TODAY);
+        if (parsed) {
+          renderGeoCard({ found: true, docUrl: `https://docs.google.com/document/d/${docId}/edit`, ...parsed });
+          return;
+        }
+        // Doc fetched but no entry for today
+        renderGeoCard({ found: false, docUrl: `https://docs.google.com/document/d/${docId}/edit` });
+        return;
+      }
+    } catch(e) {
+      console.warn('Direct doc fetch failed, falling back to Code.gs:', e.message);
+    }
+  }
+
+  // ── STRATEGY 2: Code.gs (fallback) ───────────────────────────────────────
+  if (!scriptUrl) {
+    if (hlEl) { hlEl.style.opacity = '0.4'; hlEl.textContent = 'paste Intel Doc URL in Settings'; }
+    return;
+  }
   try {
     const res  = await fetch(`${scriptUrl}?action=getTodaySignal&date=${TODAY}`);
     const text = await res.text();
     let json;
     try { json = JSON.parse(text); } catch(e) {
-      console.error('Geo parse error:', text.substring(0,200));
-      if (hlEl) { hlEl.style.opacity = '1'; hlEl.textContent = 'could not parse response'; }
+      if (hlEl) { hlEl.style.opacity = '0.5'; hlEl.textContent = 'could not parse response'; }
       return;
     }
     if (json.ok && json.data) {
       const d = json.data;
       if (d.docUrl) geoDocUrl = d.docUrl;
-      // New: server returns rawText, frontend parses it
       if (d.rawText) {
         const parsed = parseDocForDate(d.rawText, TODAY);
         renderGeoCard(parsed ? { found: true, docUrl: d.docUrl, ...parsed } : { found: false, docUrl: d.docUrl });
@@ -1125,12 +1165,10 @@ async function fetchGeoSignal() {
         renderGeoCard(d);
       }
     } else {
-      console.warn('Geo not ok:', json);
-      if (hlEl) { hlEl.style.opacity = '1'; hlEl.textContent = json.error || 'no data'; }
+      if (hlEl) { hlEl.style.opacity = '0.4'; hlEl.textContent = 'no intel for today yet'; }
     }
   } catch(e) {
-    console.error('Geo fetch error:', e.message);
-    if (hlEl) { hlEl.style.opacity = '1'; hlEl.textContent = 'connection error'; }
+    if (hlEl) { hlEl.style.opacity = '0.4'; hlEl.textContent = 'connection error'; }
   }
 }
 
