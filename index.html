@@ -148,56 +148,123 @@ html, body {
   cursor:pointer; margin-top:4px; font-family:-apple-system,system-ui;
 }
 
-/* ── geo journal modal ── */
+/* ── geo journal modal — magazine layout ── */
 #geo-journal {
   position:fixed; inset:0; z-index:300;
-  background:rgba(0,0,0,0.65);
-  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  background:rgba(0,0,0,0.78);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
   display:none; align-items:flex-end;
 }
 #geo-journal.open { display:flex; }
 .geo-sheet {
-  background:#181818;
+  background:#111;
   border-radius:28px 28px 0 0;
-  width:100%;
-  max-height:92vh;
-  overflow-y:auto;
-  padding:0;
+  width:100%; max-height:92vh;
+  display:flex; flex-direction:column;
   animation:sheetUp 280ms cubic-bezier(0.16,1,0.3,1);
 }
-.geo-sheet-inner {
-  padding:24px 22px;
-  padding-bottom:max(36px, calc(env(safe-area-inset-bottom) + 20px));
+.geo-mag-header { padding:18px 22px 0; flex-shrink:0; }
+.geo-mag-toprow {
+  display:flex; justify-content:space-between; align-items:center;
+  padding-bottom:14px;
 }
-.geo-tag {
-  display:inline-flex; align-items:center; gap:6px;
-  font-size:11px; color:rgba(255,255,255,0.35); letter-spacing:0.3px;
-}
-.geo-journal-date {
-  font-size:12px; color:rgba(255,255,255,0.28); margin:10px 0 18px;
-  letter-spacing:0.2px;
-}
-.geo-journal-headline {
-  font-size:21px; font-weight:400; color:#fff; line-height:1.35;
-  margin-bottom:20px; letter-spacing:-0.2px;
-}
-.geo-journal-body { font-size:15px; color:rgba(255,255,255,0.7); line-height:1.8; }
-.geo-journal-body .geo-p { margin-bottom:14px; }
-.geo-journal-body .geo-section-head {
-  font-size:11px; font-weight:600; color:rgba(255,255,255,0.35);
+.geo-mag-tag {
+  font-size:11px; font-weight:700; color:#4ecdc4;
   letter-spacing:0.8px; text-transform:uppercase;
-  margin:22px 0 10px; display:block;
-  padding-bottom:8px; border-bottom:0.5px solid rgba(255,255,255,0.08);
 }
-.geo-journal-body .geo-bullet {
-  display:flex; gap:12px; margin-bottom:12px; align-items:flex-start;
+.geo-mag-date {
+  font-size:12px; color:rgba(255,255,255,0.3);
+  margin-right:10px;
 }
-.geo-bullet-dot {
-  width:3px; height:3px; border-radius:50%; background:rgba(255,255,255,0.4);
-  flex-shrink:0; margin-top:10px;
+.geo-divider-line { height:0.5px; background:rgba(255,255,255,0.07); }
+.geo-scroll { overflow-y:auto; flex:1; padding:18px 22px 0; }
+
+/* signal callout */
+.geo-signal-block {
+  background:rgba(78,205,196,0.07);
+  border-left:2px solid rgba(78,205,196,0.55);
+  border-radius:0 10px 10px 0;
+  padding:14px 16px; margin-bottom:22px;
+}
+.geo-signal-lbl {
+  font-size:9px; font-weight:700; color:#4ecdc4;
+  letter-spacing:1.2px; text-transform:uppercase; margin-bottom:8px;
+}
+.geo-signal-txt {
+  font-size:16px; color:rgba(255,255,255,0.9);
+  line-height:1.55; letter-spacing:0.1px;
+}
+
+/* section pills */
+.geo-sec-row { display:flex; align-items:center; margin:22px 0 12px; }
+.geo-sec-pill {
+  display:inline-flex; align-items:center;
+  background:rgba(255,255,255,0.05);
+  border:0.5px solid rgba(255,255,255,0.1);
+  border-radius:20px; padding:4px 11px;
+  font-size:10px; font-weight:700;
+  color:rgba(255,255,255,0.5); letter-spacing:0.5px; text-transform:uppercase;
+}
+.geo-sub-lbl {
+  font-size:10px; font-weight:700;
+  color:rgba(255,255,255,0.36);
+  letter-spacing:0.6px; text-transform:uppercase;
+  margin:14px 0 7px;
+}
+
+/* bullets */
+.geo-bullet-row { display:flex; gap:10px; margin-bottom:10px; align-items:stretch; }
+.geo-bullet-accent {
+  width:1.5px; flex-shrink:0; margin-top:6px;
+  background:rgba(255,255,255,0.14); border-radius:2px;
+}
+.geo-bullet-txt {
+  font-size:14px; color:rgba(255,255,255,0.72);
+  line-height:1.62; flex:1;
+}
+.geo-bullet-txt b { font-weight:600; color:rgba(255,255,255,0.92); }
+
+/* card items (citation play, content angles) */
+.geo-card-item {
+  background:rgba(255,255,255,0.03);
+  border:0.5px solid rgba(255,255,255,0.07);
+  border-radius:10px; padding:11px 13px; margin-bottom:8px;
+  font-size:14px; color:rgba(255,255,255,0.72); line-height:1.55;
+}
+/* stat items */
+.geo-stat-item {
+  background:rgba(231,255,58,0.03);
+  border:0.5px solid rgba(231,255,58,0.1);
+  border-radius:10px; padding:11px 13px; margin-bottom:8px;
+  font-size:14px; color:rgba(255,255,255,0.78); line-height:1.55;
+}
+
+/* sources */
+.geo-source-block {
+  margin-top:6px; padding-top:14px;
+  border-top:0.5px solid rgba(255,255,255,0.06);
+}
+.geo-source-item {
+  font-size:12px; color:rgba(255,255,255,0.28);
+  line-height:1.9; word-break:break-all;
+}
+.geo-source-item a { color:rgba(78,205,196,0.5); text-decoration:none; }
+
+/* footer */
+.geo-footer-bar {
+  flex-shrink:0; padding:14px 22px;
+  padding-bottom:max(16px, calc(env(safe-area-inset-bottom) + 10px));
+  background:#111; border-top:0.5px solid rgba(255,255,255,0.06);
+}
+.geo-open-doc-btn {
+  width:100%; background:rgba(255,255,255,0.05);
+  border:0.5px solid rgba(255,255,255,0.1);
+  color:rgba(255,255,255,0.5); padding:13px;
+  border-radius:13px; font-size:14px; cursor:pointer;
+  font-family:-apple-system,system-ui; letter-spacing:0.1px;
 }
 .geo-close {
-  width:32px; height:32px; border-radius:16px;
+  width:28px; height:28px; border-radius:14px;
   background:rgba(255,255,255,0.07); border:0.5px solid rgba(255,255,255,0.1);
   cursor:pointer; display:flex; align-items:center; justify-content:center;
   color:rgba(255,255,255,0.5); flex-shrink:0;
@@ -375,24 +442,24 @@ html, body {
 
 </div>
 
-<!-- ══════════ GEO JOURNAL ══════════ -->
+<!-- ══════════ GEO JOURNAL — MAGAZINE ══════════ -->
 <div id="geo-journal" onclick="if(event.target===this)closeGeoJournal()">
   <div class="geo-sheet">
-    <div class="geo-sheet-inner">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div class="geo-tag label">Intelligence</div>
-        <button class="geo-close" onclick="closeGeoJournal()">
-          <svg width="11" height="11" viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        </button>
+    <div class="geo-mag-header">
+      <div class="geo-mag-toprow">
+        <div class="geo-mag-tag">🔬 Intelligence</div>
+        <div style="display:flex;align-items:center;">
+          <span class="geo-mag-date" id="geo-journal-date"></span>
+          <button class="geo-close" onclick="closeGeoJournal()">
+            <svg width="11" height="11" viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="geo-journal-date" id="geo-journal-date"></div>
-      <div class="geo-journal-headline" id="geo-journal-headline"></div>
-      <div class="geo-journal-body" id="geo-journal-body"></div>
-      <div style="margin-top:24px;padding-top:18px;border-top:0.5px solid rgba(255,255,255,0.07);">
-        <button onclick="openGeoDoc()" style="width:100%;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.55);padding:13px;border-radius:13px;font-size:14px;cursor:pointer;font-family:-apple-system,system-ui;letter-spacing:0.1px;">
-          open source doc ↗
-        </button>
-      </div>
+      <div class="geo-divider-line"></div>
+    </div>
+    <div class="geo-scroll" id="geo-journal-body"></div>
+    <div class="geo-footer-bar">
+      <button class="geo-open-doc-btn" onclick="openGeoDoc()">open source doc ↗</button>
     </div>
   </div>
 </div>
@@ -1075,116 +1142,225 @@ function renderGeoCard(data) {
   if (dtEl) dtEl.textContent = dateStr;
 }
 
+// ════════════════════════════════════════════
+//  GEO JOURNAL — MAGAZINE PARSER & RENDERER
+// ════════════════════════════════════════════
+
+function cleanIntelMd(t) {
+  return (t || '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\s*\(Source:[^)]*\)/gi, '')
+    .replace(/^[#*\-•\d.]+\s*/, '')
+    .trim();
+}
+
+function parseIntelSections(text) {
+  const result = { signal: '', brief: [], citation: [], angles: [], stats: [], sources: [] };
+  const lines = text.split('\n');
+  let sec = null, briefSub = null;
+
+  for (const rawLine of lines) {
+    const l = rawLine.trim();
+    if (!l || /^[═─—=\-]{4,}$/.test(l)) continue;
+
+    if (/^##\s+/.test(l)) {
+      const t = l.replace(/^##\s+/, '');
+      if      (/SIGNAL/i.test(t))           sec = 'signal';
+      else if (/INTELLIGENCE|BRIEF/i.test(t)) { sec = 'brief'; briefSub = null; }
+      else if (/CITATION/i.test(t))          sec = 'citation';
+      else if (/ANGLE/i.test(t))             sec = 'angles';
+      else if (/STAT/i.test(t))              sec = 'stats';
+      else if (/SOURCE/i.test(t))            sec = 'sources';
+      else                                   sec = null;
+      continue;
+    }
+
+    // Intelligence sub-section header: **GEO:** on its own line
+    if (sec === 'brief' && /^\*\*[^*]+:\*\*\s*$/.test(l)) {
+      const title = l.replace(/\*\*/g, '').replace(/:$/, '').trim();
+      briefSub = { title, bullets: [] };
+      result.brief.push(briefSub);
+      continue;
+    }
+
+    if (sec === 'signal') {
+      const c = cleanIntelMd(l);
+      if (c) result.signal = result.signal ? result.signal + ' ' + c : c;
+    } else if (sec === 'brief' && /^[*\-]\s+/.test(l)) {
+      if (!briefSub) { briefSub = { title: '', bullets: [] }; result.brief.push(briefSub); }
+      briefSub.bullets.push(rawLine);
+    } else if (sec === 'citation' && (/^[*\-\d]/.test(l) || l.length > 15)) {
+      result.citation.push(rawLine);
+    } else if (sec === 'angles' && (/^[*\-\d]/.test(l) || l.length > 15)) {
+      result.angles.push(rawLine);
+    } else if (sec === 'stats' && (/^[*\-\d]/.test(l) || l.length > 15)) {
+      result.stats.push(rawLine);
+    } else if (sec === 'sources' && /^[*\-]\s+/.test(l)) {
+      result.sources.push(rawLine);
+    }
+  }
+  return result;
+}
+
+function _addMagPill(container, label) {
+  const row = document.createElement('div');
+  row.className = 'geo-sec-row';
+  const pill = document.createElement('span');
+  pill.className = 'geo-sec-pill';
+  pill.textContent = label;
+  row.appendChild(pill);
+  container.appendChild(row);
+}
+
+function _addMagBullet(container, rawText, style) {
+  // style: 'bullet' | 'card' | 'stat'
+  const withoutBullet = rawText.replace(/^[*\-]\s+/, '');
+  const cleaned = cleanIntelMd(rawText);
+  if (!cleaned) return;
+
+  if (style === 'card' || style === 'stat') {
+    const el = document.createElement('div');
+    el.className = style === 'stat' ? 'geo-stat-item' : 'geo-card-item';
+    el.textContent = cleaned;
+    container.appendChild(el);
+    return;
+  }
+
+  // Default: accent-bar bullet
+  const row = document.createElement('div');
+  row.className = 'geo-bullet-row';
+  const bar = document.createElement('div');
+  bar.className = 'geo-bullet-accent';
+  row.appendChild(bar);
+  const txt = document.createElement('div');
+  txt.className = 'geo-bullet-txt';
+
+  // Check for inline bold: **Title:** rest
+  const titleMatch = withoutBullet.match(/^\*\*([^*]+):\*\*\s*(.+)/);
+  if (titleMatch) {
+    const b = document.createElement('b');
+    b.textContent = titleMatch[1] + ': ';
+    const rest = titleMatch[2]
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\s*\(Source:[^)]*\)/gi, '')
+      .trim();
+    txt.appendChild(b);
+    txt.appendChild(document.createTextNode(rest));
+  } else {
+    txt.textContent = cleaned;
+  }
+  row.appendChild(txt);
+  container.appendChild(row);
+}
+
 function openGeoJournal() {
   if (!_geoData || !_geoData.found) return;
+
   const dateStr = _geoData.date
     ? new Date(_geoData.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
     : '';
   document.getElementById('geo-journal-date').textContent = dateStr;
-  document.getElementById('geo-journal-headline').textContent = _geoData.headline || '';
 
-  // Markdown cleaner — strips formatting, removes source URLs
-  function cleanMd(t) {
-    return t
-      .replace(/\*\*([^*]+)\*\*/g, '$1')
-      .replace(/\*([^*\n]+)\*/g, '$1')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/\s*\(Source:[^)]*\)/gi, '')
-      .replace(/^#+\s*/, '')
-      .replace(/^[*\-•]\s*/, '')
-      .trim();
-  }
-
-  const raw = (_geoData.body || _geoData.preview || '').trim();
   const bodyEl = document.getElementById('geo-journal-body');
   bodyEl.innerHTML = '';
 
-  const lines = raw.split('\n');
-  let currentSubHead = '';
+  const raw = (_geoData.body || _geoData.preview || '').trim();
+  const secs = parseIntelSections(raw);
 
-  for (let i = 0; i < lines.length; i++) {
-    const raw_l = lines[i];
-    const l = raw_l.trim();
+  // ── Today's Signal — featured pullquote ──
+  if (secs.signal) {
+    const block = document.createElement('div');
+    block.className = 'geo-signal-block';
+    const lbl = document.createElement('div');
+    lbl.className = 'geo-signal-lbl';
+    lbl.textContent = "Today's Signal";
+    const txt = document.createElement('div');
+    txt.className = 'geo-signal-txt';
+    txt.textContent = secs.signal;
+    block.appendChild(lbl);
+    block.appendChild(txt);
+    bodyEl.appendChild(block);
+  }
 
-    // Skip separators and empty lines
-    if (!l || /^[═─—=\-]{4,}$/.test(l)) continue;
-
-    // Section header: ## emoji Title
-    if (/^##\s+/.test(l)) {
-      const title = l.replace(/^##\s+/, '').replace(/[🌐🎯📌✍️📊🔗🔬]\s*/g, '').trim();
-      const s = document.createElement('span');
-      s.className = 'geo-section-head';
-      s.textContent = title;
-      bodyEl.appendChild(s);
-      currentSubHead = '';
-      continue;
-    }
-
-    // Sub-header: **Topic:** (bold label ending in colon, on its own line)
-    if (/^\*\*[^*]+:\*\*\s*$/.test(l)) {
-      currentSubHead = l.replace(/\*\*/g, '').replace(/:$/, '').trim();
-      const sh = document.createElement('div');
-      sh.style.cssText = 'font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);margin:16px 0 6px;';
-      sh.textContent = currentSubHead;
-      bodyEl.appendChild(sh);
-      continue;
-    }
-
-    // Bullet: *   **Title:** content  OR  *   content  OR  - content
-    if (/^[*\-]\s+/.test(l)) {
-      const cleaned = cleanMd(l);
-      if (!cleaned) continue;
-
-      // Check for inline bold title: **Title:** rest
-      const titleMatch = cleaned.match(/^([^:]{3,40}):\s+(.+)/);
-      const d = document.createElement('div');
-      d.className = 'geo-bullet';
-      const dot = document.createElement('div');
-      dot.className = 'geo-bullet-dot';
-      d.appendChild(dot);
-
-      if (titleMatch) {
-        const span = document.createElement('span');
-        const b = document.createElement('b');
-        b.style.cssText = 'font-weight:600;color:rgba(255,255,255,0.9);';
-        b.textContent = titleMatch[1] + ': ';
-        span.appendChild(b);
-        span.appendChild(document.createTextNode(titleMatch[2]));
-        d.appendChild(span);
-      } else {
-        d.appendChild(document.createTextNode(cleaned));
+  // ── Intelligence Brief ──
+  if (secs.brief.length) {
+    _addMagPill(bodyEl, '🌐 Intelligence Brief');
+    for (const sub of secs.brief) {
+      if (sub.title) {
+        const sh = document.createElement('div');
+        sh.className = 'geo-sub-lbl';
+        sh.textContent = sub.title;
+        bodyEl.appendChild(sh);
       }
-      bodyEl.appendChild(d);
-      continue;
-    }
-
-    // Numbered list
-    if (/^\d+\.\s+/.test(l)) {
-      const cleaned = cleanMd(l.replace(/^\d+\.\s+/, ''));
-      if (!cleaned) continue;
-      const d = document.createElement('div');
-      d.className = 'geo-bullet';
-      const dot = document.createElement('div');
-      dot.className = 'geo-bullet-dot';
-      d.appendChild(dot);
-      d.appendChild(document.createTextNode(cleaned));
-      bodyEl.appendChild(d);
-      continue;
-    }
-
-    // Regular paragraph
-    const cleaned = cleanMd(l);
-    if (cleaned.length > 4) {
-      const p = document.createElement('div');
-      p.className = 'geo-p';
-      p.textContent = cleaned;
-      bodyEl.appendChild(p);
+      for (const b of sub.bullets) _addMagBullet(bodyEl, b, 'bullet');
     }
   }
+
+  // ── Citation Play ──
+  if (secs.citation.length) {
+    _addMagPill(bodyEl, '📌 Citation Play');
+    for (const l of secs.citation) _addMagBullet(bodyEl, l, 'card');
+  }
+
+  // ── Content Angles ──
+  if (secs.angles.length) {
+    _addMagPill(bodyEl, '✍️ Content Angles');
+    for (const l of secs.angles) _addMagBullet(bodyEl, l, 'card');
+  }
+
+  // ── Key Stats ──
+  if (secs.stats.length) {
+    _addMagPill(bodyEl, '📊 Stats & Hooks');
+    for (const l of secs.stats) _addMagBullet(bodyEl, l, 'stat');
+  }
+
+  // ── All Sources ──
+  if (secs.sources.length) {
+    const srcBlock = document.createElement('div');
+    srcBlock.className = 'geo-source-block';
+    const srcPill = document.createElement('span');
+    srcPill.className = 'geo-sec-pill';
+    srcPill.style.cssText = 'margin-bottom:10px;display:inline-flex;';
+    srcPill.textContent = '🔗 Sources';
+    srcBlock.appendChild(srcPill);
+    for (const s of secs.sources) {
+      const clean = cleanIntelMd(s);
+      const urlMatch = s.match(/https?:\/\/[^\s)>\]]+/);
+      const item = document.createElement('div');
+      item.className = 'geo-source-item';
+      if (urlMatch) {
+        try {
+          const host = new URL(urlMatch[0]).hostname.replace(/^www\./, '');
+          const label = clean.replace(urlMatch[0], '').replace(/\[\]\s*/, '').trim() || host;
+          item.innerHTML = `<a href="${esc(urlMatch[0])}" target="_blank">${esc(label)}</a>`;
+        } catch(e) { item.textContent = clean; }
+      } else {
+        item.textContent = clean;
+      }
+      srcBlock.appendChild(item);
+    }
+    bodyEl.appendChild(srcBlock);
+  }
+
+  // If nothing parsed (fallback: just show raw text as paragraphs)
+  if (!secs.signal && !secs.brief.length && !secs.citation.length) {
+    const fb = document.createElement('div');
+    fb.style.cssText = 'font-size:14px;color:rgba(255,255,255,0.7);line-height:1.7;';
+    fb.textContent = raw;
+    bodyEl.appendChild(fb);
+  }
+
+  const spacer = document.createElement('div');
+  spacer.style.height = '20px';
+  bodyEl.appendChild(spacer);
 
   const modal = document.getElementById('geo-journal');
   modal.style.display = 'flex';
   requestAnimationFrame(() => modal.classList.add('open'));
+  bodyEl.scrollTop = 0;
 }
 
 function closeGeoJournal() {
